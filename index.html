@@ -88,11 +88,12 @@ body::before {
     50% { transform: translateY(-6px); }
 }
 
+
 #start-subtitle {
     font-family: 'Share Tech Mono', monospace;
     font-size: clamp(9px, 1.8vw, 13px);
     letter-spacing: clamp(4px, 1vw, 10px);
-    color: rgba(0,170,255,0.75);
+    color: rgba(0,170,255,0.5);
     text-transform: uppercase;
     margin-bottom: 40px;
     animation: subtitle-fade 2s ease-in-out infinite alternate;
@@ -420,22 +421,29 @@ body::before {
 .speed-btn.active { background: rgba(0,170,255,0.18); border-color: #0af; color: #0af; box-shadow: 0 0 6px rgba(0,170,255,0.3); }
 
 #follow-btn {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    z-index: 15;
     font-family: 'Share Tech Mono', monospace;
-    font-size: 8px;
-    letter-spacing: 1px;
+    font-size: 11px;
+    font-weight: bold;
+    letter-spacing: 2px;
     text-transform: uppercase;
-    background: rgba(0,170,255,0.05);
-    border: 1px solid rgba(0,170,255,0.2);
+    background: rgba(0,10,25,0.9);
+    border: 1px solid rgba(0,170,255,0.35);
     color: #4a7a9a;
-    padding: 4px 10px;
+    padding: 8px 14px;
     cursor: pointer;
     transition: all 0.2s;
     white-space: nowrap;
+    pointer-events: auto;
 }
 #follow-btn:hover, #follow-btn.active {
     background: rgba(0,170,255,0.15);
     border-color: #0af;
     color: #0af;
+    box-shadow: 0 0 10px rgba(0,170,255,0.25);
 }
 
 /* ══════════════════════════════════════
@@ -818,8 +826,8 @@ body::before {
 
     <div id="start-explainer">
         <p><span class="em">Tap planets</span> to fly there and resupply.</p>
-        <p>Jed walks the surface, grabs the cargo, and loads up and replenishes his supplies.</p>
-        <p><span class="warn">Oxygen, water, food, fuel & hull</span> all drain — keep them topped up.</p>
+        <p>Jed walks the surface, grabs the cargo, and loads up.</p>
+        <p><span class="warn">Oxygen, water, food, fuel & hull</span> all drain — keep them alive.</p>
         <p>Random space events will try to kill you. <span class="em">Don't let them.</span></p>
     </div>
 
@@ -875,11 +883,12 @@ body::before {
                 <button class="speed-btn" onclick="setSpeed(2)" id="spd2">2×</button>
                 <button class="speed-btn" onclick="setSpeed(4)" id="spd4">4×</button>
             </div>
-            <button id="follow-btn">CAM: OFF</button>
         </div>
 
     </div>
 </div>
+
+<button id="follow-btn" style="display:none;">CAM: OFF</button>
 
 <div id="zoom-hint" style="display:none;">SCROLL/PINCH TO ZOOM &nbsp;·&nbsp; DRAG TO PAN</div>
 
@@ -938,8 +947,9 @@ const startCanvas = document.getElementById("start-canvas");
 const sctx = startCanvas.getContext("2d");
 
 function drawStartScreen(t){
-    const W = startCanvas.width;
-    const H = startCanvas.height;
+    const dpr = window.devicePixelRatio || 1;
+    const W = startCanvas.width / dpr;
+    const H = startCanvas.height / dpr;
     sctx.clearRect(0, 0, W, H);
 
     // ── Background: subtle star dust ──
@@ -958,201 +968,420 @@ function drawStartScreen(t){
 
     // ── Ground line ──
     const groundY = H - 30;
-    sctx.strokeStyle = 'rgba(0,170,255,0.15)';
-    sctx.lineWidth = 1;
-    sctx.beginPath();
-    sctx.moveTo(60, groundY);
-    sctx.lineTo(W - 60, groundY);
-    sctx.stroke();
-    // Glow on ground
-    const gg = sctx.createLinearGradient(60, groundY - 2, 60, groundY + 8);
-    gg.addColorStop(0, 'rgba(0,170,255,0.06)');
-    gg.addColorStop(1, 'rgba(0,0,0,0)');
-    sctx.fillStyle = gg;
-    sctx.fillRect(60, groundY, W - 120, 10);
 
-    // ── ROCKET (right side) ──
-    const rocketX = W * 0.68;
-    const rocketBaseY = groundY;
-    const rocketBob = Math.sin(t * 0.0015) * 3;
-    const rs = 2.4; // rocket scale — bigger than Jed (1.6)
+    // Hide ground during warp
+    if(launchPhase !== 'warp' && launchPhase !== 'done'){
+        sctx.strokeStyle = 'rgba(0,170,255,0.15)';
+        sctx.lineWidth = 1;
+        sctx.beginPath();
+        sctx.moveTo(60, groundY);
+        sctx.lineTo(W - 60, groundY);
+        sctx.stroke();
+        const gg = sctx.createLinearGradient(60, groundY - 2, 60, groundY + 8);
+        gg.addColorStop(0, 'rgba(0,170,255,0.06)');
+        gg.addColorStop(1, 'rgba(0,0,0,0)');
+        sctx.fillStyle = gg;
+        sctx.fillRect(60, groundY, W - 120, 10);
+    }
 
-    sctx.save();
-    sctx.translate(rocketX, rocketBaseY + rocketBob);
-    sctx.scale(rs, rs);
+    // ── Animation state ──
+    const rocketHomeX = W * 0.68;
+    const rocketHomeY = groundY;
+    const jedHomeX = W * 0.32;
+    const jedHomeY = groundY;
+    const rs = 2.4;
+    const s = 1.6;
 
-    // Exhaust glow (idle shimmer)
-    const exGlow = sctx.createRadialGradient(0, 2, 2, 0, 8, 20);
-    exGlow.addColorStop(0, `rgba(255,160,40,${0.15 + 0.1 * Math.sin(t * 0.004)})`);
-    exGlow.addColorStop(1, 'rgba(255,80,0,0)');
-    sctx.fillStyle = exGlow;
-    sctx.beginPath();
-    sctx.arc(0, 8, 20, 0, Math.PI * 2);
-    sctx.fill();
+    // Compute animated positions
+    let jedX = jedHomeX;
+    let jedY = jedHomeY;
+    let jedScale = s;
+    let jedVisible = true;
+    let jedWaving = true;
+    let jedWalking = false;
+    let rocketX = rocketHomeX;
+    let rocketY = rocketHomeY;
+    let rocketBob = Math.sin(t * 0.0015) * 3;
+    let showLabels = true;
+    let showExhaust = false;
+    let exhaustIntensity = 0;
+    let rocketScale = rs;
+
+    if(launchPhase === 'walking'){
+        const p = Math.min(1, launchTimer / 1500);
+        const ease = p < 0.5 ? 2*p*p : 1 - Math.pow(-2*p+2,2)/2; // ease in-out
+        jedX = jedHomeX + (rocketHomeX - jedHomeX) * ease;
+        jedWaving = false;
+        jedWalking = true;
+        showLabels = false;
+        rocketBob = Math.sin(t * 0.0015) * 3 * (1 - p);
+    }
+    else if(launchPhase === 'boarding'){
+        const p = Math.min(1, launchTimer / 500);
+        jedX = rocketHomeX;
+        jedScale = s * (1 - p);
+        jedY = jedHomeY - p * 20;
+        jedWaving = false;
+        jedWalking = false;
+        showLabels = false;
+        rocketBob = 0;
+        if(p > 0.7) jedVisible = false;
+    }
+    else if(launchPhase === 'powerup'){
+        const p = Math.min(1, launchTimer / 1500);
+        jedVisible = false;
+        showLabels = false;
+        showExhaust = true;
+        exhaustIntensity = p * p; // builds up
+        rocketBob = 0;
+
+        // Shake — intensifies over time
+        const shakeAmt = p * 4;
+        rocketX = rocketHomeX + (Math.random() - 0.5) * shakeAmt;
+        rocketY = rocketHomeY + (Math.random() - 0.5) * shakeAmt * 0.6;
+
+        // Dust shaking off the ground
+        if(Math.random() > 0.5){
+            launchDust.push({
+                x: rocketHomeX + (Math.random()-0.5) * 30,
+                y: groundY + Math.random() * 4,
+                vx: (Math.random()-0.5) * 2,
+                vy: -Math.random() * 1.2,
+                life: 1,
+                size: 1 + Math.random() * 2.5,
+            });
+        }
+    }
+    else if(launchPhase === 'warp'){
+        const p = Math.min(1, launchTimer / 800);
+        jedVisible = false;
+        showLabels = false;
+        showExhaust = false;
+        rocketBob = 0;
+
+        // Draw warp streak at rocket position
+        const warpEase = 1 - Math.pow(1-p, 2);
+        sctx.save();
+        sctx.translate(rocketHomeX, rocketHomeY);
+
+        const streakW = warpEase * 350 + 10;
+        const streakH = (1 - warpEase) * 30 + 2;
+        const alpha = warpEase * 0.9;
+
+        // Vertical warp streak
+        const sg = sctx.createLinearGradient(0, -streakW, 0, streakW);
+        sg.addColorStop(0,   'rgba(100,200,255,0)');
+        sg.addColorStop(0.3, `rgba(140,220,255,${alpha * 0.5})`);
+        sg.addColorStop(0.5, `rgba(220,240,255,${alpha})`);
+        sg.addColorStop(0.7, `rgba(140,220,255,${alpha * 0.5})`);
+        sg.addColorStop(1,   'rgba(100,200,255,0)');
+        sctx.fillStyle = sg;
+        sctx.fillRect(-streakH/2, -streakW, streakH, streakW*2);
+
+        // Core line
+        const cg = sctx.createLinearGradient(0, -streakW*0.6, 0, streakW*0.6);
+        cg.addColorStop(0, 'rgba(255,255,255,0)');
+        cg.addColorStop(0.5, `rgba(255,255,255,${alpha})`);
+        cg.addColorStop(1, 'rgba(255,255,255,0)');
+        sctx.fillStyle = cg;
+        sctx.fillRect(-1, -streakW*0.6, 2, streakW*1.2);
+
+        // Flash burst at start
+        if(p < 0.3){
+            const flashA = (0.3-p)/0.3;
+            const flashR = (1-p) * 60;
+            const fg = sctx.createRadialGradient(0,0,0, 0,0,flashR);
+            fg.addColorStop(0, `rgba(255,255,255,${flashA*0.9})`);
+            fg.addColorStop(0.4, `rgba(160,220,255,${flashA*0.5})`);
+            fg.addColorStop(1, 'rgba(100,180,255,0)');
+            sctx.fillStyle = fg;
+            sctx.beginPath();
+            sctx.arc(0, 0, flashR, 0, Math.PI*2);
+            sctx.fill();
+        }
+
+        // Speed lines radiating out
+        if(p < 0.5){
+            const lineAlpha = (0.5 - p) / 0.5;
+            sctx.strokeStyle = `rgba(180,230,255,${lineAlpha * 0.6})`;
+            sctx.lineWidth = 0.8;
+            for(let i = 0; i < 12; i++){
+                const la = (i / 12) * Math.PI * 2;
+                const inner = 15 + p * 20;
+                const outer = inner + (1 - p) * 80 * (0.4 + Math.random() * 0.6);
+                sctx.beginPath();
+                sctx.moveTo(Math.cos(la) * inner, Math.sin(la) * inner);
+                sctx.lineTo(Math.cos(la) * outer, Math.sin(la) * outer);
+                sctx.stroke();
+            }
+        }
+
+        sctx.restore();
+
+        // Fade rocket out quickly
+        if(p > 0.15){
+            const rocketAlpha = Math.max(0, (0.3 - Math.min(0.3, p - 0.15)) / 0.3);
+            drawRocket(sctx, rocketHomeX, rocketHomeY, 0, rocketScale, t, false, 0, false, rocketAlpha);
+            drawLaunchDust(sctx, t);
+            return;
+        }
+    }
+    else if(launchPhase === 'done'){
+        return;
+    }
+
+    // ── Draw launch dust particles ──
+    drawLaunchDust(sctx, t);
+
+    // ── Draw rocket ──
+    drawRocket(sctx, rocketX, rocketY + rocketBob, rocketBob, rocketScale, t, showExhaust, exhaustIntensity, showLabels, 1);
+
+    // ── Draw Jed ──
+    if(jedVisible && jedScale > 0.05){
+        drawJed(sctx, jedX, jedY, jedScale, t, jedWaving, jedWalking, showLabels);
+    }
+}
+
+// ── Launch dust particle system ──
+let launchDust = [];
+
+function drawLaunchDust(ctx2, t){
+    for(let i = launchDust.length - 1; i >= 0; i--){
+        const d = launchDust[i];
+        d.x += d.vx;
+        d.y += d.vy;
+        d.vy += 0.02;
+        d.vx *= 0.98;
+        d.life -= 0.018;
+        if(d.life <= 0){ launchDust.splice(i,1); continue; }
+        ctx2.globalAlpha = d.life * 0.6;
+        ctx2.fillStyle = '#aaccdd';
+        ctx2.beginPath();
+        ctx2.arc(d.x, d.y, d.size * d.life, 0, Math.PI*2);
+        ctx2.fill();
+    }
+    ctx2.globalAlpha = 1;
+}
+
+// ── Rocket drawing helper ──
+function drawRocket(ctx2, x, y, bob, sc, t, showExhaust, exInt, labels, alpha){
+    if(alpha <= 0) return;
+    ctx2.save();
+    ctx2.globalAlpha = alpha;
+    ctx2.translate(x, y);
+    ctx2.scale(sc, sc);
+
+    // Exhaust
+    if(showExhaust && exInt > 0){
+        const flameLen = 20 + Math.sin(t * 0.02) * 8;
+        const fg = ctx2.createRadialGradient(0, 6, 2, 0, 6 + flameLen*0.5, flameLen*exInt);
+        fg.addColorStop(0, `rgba(255,255,200,${0.9*exInt})`);
+        fg.addColorStop(0.3, `rgba(255,160,40,${0.7*exInt})`);
+        fg.addColorStop(0.6, `rgba(255,80,10,${0.4*exInt})`);
+        fg.addColorStop(1, 'rgba(255,40,0,0)');
+        ctx2.fillStyle = fg;
+        ctx2.beginPath();
+        ctx2.arc(0, 6 + flameLen*0.3*exInt, flameLen*exInt, 0, Math.PI*2);
+        ctx2.fill();
+    } else {
+        // Idle shimmer
+        const exGlow = ctx2.createRadialGradient(0, 2, 2, 0, 8, 20);
+        exGlow.addColorStop(0, `rgba(255,160,40,${0.15 + 0.1 * Math.sin(t * 0.004)})`);
+        exGlow.addColorStop(1, 'rgba(255,80,0,0)');
+        ctx2.fillStyle = exGlow;
+        ctx2.beginPath();
+        ctx2.arc(0, 8, 20, 0, Math.PI * 2);
+        ctx2.fill();
+    }
 
     // Nozzle
-    sctx.fillStyle = '#667788';
-    sctx.fillRect(-5, -4, 10, 8);
+    ctx2.fillStyle = '#667788';
+    ctx2.fillRect(-5, -4, 10, 8);
 
     // Body
-    sctx.fillStyle = '#dde8f0';
-    sctx.beginPath();
-    if(sctx.roundRect) { sctx.roundRect(-8, -44, 16, 42, 3); sctx.fill(); }
-    else { sctx.fillRect(-8, -44, 16, 42); }
+    ctx2.fillStyle = '#dde8f0';
+    ctx2.beginPath();
+    if(ctx2.roundRect) { ctx2.roundRect(-8, -44, 16, 42, 3); ctx2.fill(); }
+    else { ctx2.fillRect(-8, -44, 16, 42); }
 
     // Cockpit
-    sctx.fillStyle = 'rgba(0,200,255,0.7)';
-    sctx.beginPath();
-    sctx.ellipse(0, -36, 5, 8, 0, 0, Math.PI * 2);
-    sctx.fill();
+    ctx2.fillStyle = 'rgba(0,200,255,0.7)';
+    ctx2.beginPath();
+    ctx2.ellipse(0, -36, 5, 8, 0, 0, Math.PI * 2);
+    ctx2.fill();
 
     // Wings
-    sctx.fillStyle = '#aabbc8';
-    sctx.beginPath();
-    sctx.moveTo(-8, -14); sctx.lineTo(-20, -4); sctx.lineTo(-8, -8);
-    sctx.closePath(); sctx.fill();
-    sctx.beginPath();
-    sctx.moveTo(8, -14); sctx.lineTo(20, -4); sctx.lineTo(8, -8);
-    sctx.closePath(); sctx.fill();
+    ctx2.fillStyle = '#aabbc8';
+    ctx2.beginPath();
+    ctx2.moveTo(-8, -14); ctx2.lineTo(-20, -4); ctx2.lineTo(-8, -8);
+    ctx2.closePath(); ctx2.fill();
+    ctx2.beginPath();
+    ctx2.moveTo(8, -14); ctx2.lineTo(20, -4); ctx2.lineTo(8, -8);
+    ctx2.closePath(); ctx2.fill();
 
-    // Ship label (undo scale so text stays readable)
-    sctx.scale(1/rs, 1/rs);
-    sctx.font = "7px 'Share Tech Mono'";
-    sctx.fillStyle = 'rgba(0,170,255,0.5)';
-    sctx.textAlign = 'center';
-    sctx.fillText('THE SHIP', 0, -52 * rs);
+    // Label
+    if(labels){
+        ctx2.scale(1/sc, 1/sc);
+        ctx2.font = "7px 'Share Tech Mono'";
+        ctx2.fillStyle = 'rgba(0,170,255,0.5)';
+        ctx2.textAlign = 'center';
+        ctx2.fillText('THE SHIP', 0, -52 * sc);
+    }
 
-    sctx.restore();
+    ctx2.restore();
+}
 
-    // ── JED (left side, waving) ──
-    const jedX = W * 0.32;
-    const jedBaseY = groundY;
-    const jedBob = Math.sin(t * 0.002 + 1) * 2;
+// ── Jed drawing helper ──
+function drawJed(ctx2, x, y, sc, t, waving, walking, labels){
+    ctx2.save();
+    ctx2.translate(x, y);
+    const bob = walking ? 0 : Math.sin(t * 0.002 + 1) * 2;
+    ctx2.translate(0, bob);
+    ctx2.scale(sc, sc);
 
-    sctx.save();
-    sctx.translate(jedX, jedBaseY + jedBob);
-    const s = 1.6; // scale Jed up a bit
-    sctx.scale(s, s);
+    // Shadow
+    ctx2.globalAlpha = 0.15;
+    ctx2.fillStyle = '#0af';
+    ctx2.beginPath();
+    ctx2.ellipse(0, 2, 10, 3, 0, 0, Math.PI * 2);
+    ctx2.fill();
+    ctx2.globalAlpha = 1;
 
-    // Shadow under Jed
-    sctx.globalAlpha = 0.15;
-    sctx.fillStyle = '#0af';
-    sctx.beginPath();
-    sctx.ellipse(0, 2, 10, 3, 0, 0, Math.PI * 2);
-    sctx.fill();
-    sctx.globalAlpha = 1;
+    // Legs
+    if(walking){
+        const step = Math.sin(t * 0.012);
+        ctx2.fillStyle = '#aabbc8';
+        ctx2.fillRect(-5 + step*2, -12, 4, 12 + step*2);
+        ctx2.fillRect(1 - step*2, -12, 4, 12 - step*2);
+    } else {
+        const legSway = Math.sin(t * 0.0018) * 1;
+        ctx2.fillStyle = '#aabbc8';
+        ctx2.fillRect(-5 + legSway, -12, 4, 12);
+        ctx2.fillRect(1 - legSway, -12, 4, 12);
+    }
 
-    // Legs (slight idle sway)
-    const legSway = Math.sin(t * 0.0018) * 1;
-    sctx.fillStyle = '#aabbc8';
-    sctx.fillRect(-5 + legSway, -12, 4, 12);
-    sctx.fillRect(1 - legSway, -12, 4, 12);
-
-    // Suit body
-    sctx.fillStyle = '#dde8f0';
-    sctx.fillRect(-7, -30, 14, 20);
+    // Body
+    ctx2.fillStyle = '#dde8f0';
+    ctx2.fillRect(-7, -30, 14, 20);
 
     // Backpack
-    sctx.fillStyle = '#99aabb';
-    sctx.fillRect(7, -28, 5, 14);
+    ctx2.fillStyle = '#99aabb';
+    ctx2.fillRect(7, -28, 5, 14);
 
-    // Left arm (hanging)
-    sctx.fillStyle = '#ccd8e4';
-    sctx.save();
-    sctx.translate(-7, -26);
-    sctx.rotate(Math.sin(t * 0.002) * 0.08);
-    sctx.fillRect(-4, 0, 4, 14);
-    sctx.restore();
+    // Left arm
+    ctx2.fillStyle = '#ccd8e4';
+    ctx2.save();
+    ctx2.translate(-7, -26);
+    if(walking){
+        ctx2.rotate(Math.sin(t * 0.012) * 0.5);
+    } else {
+        ctx2.rotate(Math.sin(t * 0.002) * 0.08);
+    }
+    ctx2.fillRect(-4, 0, 4, 14);
+    ctx2.restore();
 
-    // Right arm (WAVING! — two segments for natural motion)
-    sctx.fillStyle = '#ccd8e4';
-    sctx.save();
-    sctx.translate(7, -28);
-    // Upper arm raised up and slightly out
-    const upperArmAngle = -1.4;
-    sctx.rotate(upperArmAngle);
-    sctx.fillRect(0, 0, 4, 12);
-    // Forearm — pivots at elbow for the actual wave
-    sctx.translate(2, 12);
-    const waveAngle = -Math.PI/2 + Math.sin(t * 0.008) * 0.7;
-    sctx.rotate(waveAngle);
-    sctx.fillRect(-2, 0, 4, 10);
-    // Glove / hand
-    sctx.fillStyle = '#dde8f0';
-    sctx.beginPath();
-    sctx.arc(0, 11, 3, 0, Math.PI * 2);
-    sctx.fill();
-    sctx.restore();
+    // Right arm
+    ctx2.fillStyle = '#ccd8e4';
+    ctx2.save();
+    ctx2.translate(7, -28);
+    if(waving){
+        const upperArmAngle = -1.4;
+        ctx2.rotate(upperArmAngle);
+        ctx2.fillRect(0, 0, 4, 12);
+        ctx2.translate(2, 12);
+        const waveAngle = -Math.PI/2 + Math.sin(t * 0.008) * 0.7;
+        ctx2.rotate(waveAngle);
+        ctx2.fillRect(-2, 0, 4, 10);
+        ctx2.fillStyle = '#dde8f0';
+        ctx2.beginPath();
+        ctx2.arc(0, 11, 3, 0, Math.PI * 2);
+        ctx2.fill();
+    } else if(walking){
+        ctx2.rotate(-Math.sin(t * 0.012) * 0.5);
+        ctx2.fillRect(0, 0, 4, 14);
+    } else {
+        ctx2.rotate(Math.sin(t * 0.002) * 0.08);
+        ctx2.fillRect(0, 0, 4, 14);
+    }
+    ctx2.restore();
 
     // Helmet
-    sctx.fillStyle = 'rgba(200,230,255,0.95)';
-    sctx.beginPath();
-    sctx.arc(0, -38, 10, 0, Math.PI * 2);
-    sctx.fill();
-    // Visor
-    sctx.fillStyle = 'rgba(0,160,255,0.45)';
-    sctx.beginPath();
-    sctx.arc(0, -37, 7, 0, Math.PI * 2);
-    sctx.fill();
-    // Visor highlight
-    sctx.fillStyle = 'rgba(255,255,255,0.3)';
-    sctx.beginPath();
-    sctx.ellipse(-2, -40, 3, 2, -0.3, 0, Math.PI * 2);
-    sctx.fill();
+    ctx2.fillStyle = 'rgba(200,230,255,0.95)';
+    ctx2.beginPath();
+    ctx2.arc(0, -38, 10, 0, Math.PI * 2);
+    ctx2.fill();
+    ctx2.fillStyle = 'rgba(0,160,255,0.45)';
+    ctx2.beginPath();
+    ctx2.arc(0, -37, 7, 0, Math.PI * 2);
+    ctx2.fill();
+    ctx2.fillStyle = 'rgba(255,255,255,0.3)';
+    ctx2.beginPath();
+    ctx2.ellipse(-2, -40, 3, 2, -0.3, 0, Math.PI * 2);
+    ctx2.fill();
 
     // Antenna
-    sctx.strokeStyle = 'rgba(200,230,255,0.6)';
-    sctx.lineWidth = 1;
-    sctx.beginPath();
-    sctx.moveTo(0, -48);
-    sctx.lineTo(3, -56);
-    sctx.stroke();
-    // Antenna tip blink
-    sctx.fillStyle = t % 1200 < 600 ? '#0af' : '#066';
-    sctx.beginPath();
-    sctx.arc(3, -57, 2, 0, Math.PI * 2);
-    sctx.fill();
+    ctx2.strokeStyle = 'rgba(200,230,255,0.6)';
+    ctx2.lineWidth = 1;
+    ctx2.beginPath();
+    ctx2.moveTo(0, -48);
+    ctx2.lineTo(3, -56);
+    ctx2.stroke();
+    ctx2.fillStyle = t % 1200 < 600 ? '#0af' : '#066';
+    ctx2.beginPath();
+    ctx2.arc(3, -57, 2, 0, Math.PI * 2);
+    ctx2.fill();
 
-    // Jed label
-    sctx.scale(1/s, 1/s); // undo scale for text
-    sctx.font = "7px 'Share Tech Mono'";
-    sctx.fillStyle = 'rgba(0,170,255,0.5)';
-    sctx.textAlign = 'center';
-    sctx.fillText('JED', 0, -62 * s);
+    // Label
+    if(labels){
+        ctx2.scale(1/sc, 1/sc);
+        ctx2.font = "7px 'Share Tech Mono'";
+        ctx2.fillStyle = 'rgba(0,170,255,0.5)';
+        ctx2.textAlign = 'center';
+        ctx2.fillText('JED', 0, -62 * sc);
+    }
 
-    sctx.restore();
-
-    // ── Small orbiting planet decoration ──
-    const orbR = 55;
-    const orbAngle = t * 0.001;
-    const orbX = W * 0.5 + Math.cos(orbAngle) * orbR;
-    const orbY = 35 + Math.sin(orbAngle) * orbR * 0.35;
-    // Orbit trail
-    sctx.globalAlpha = 0.08;
-    sctx.strokeStyle = '#0af';
-    sctx.lineWidth = 0.5;
-    sctx.beginPath();
-    sctx.save();
-    sctx.translate(W * 0.5, 35);
-    sctx.scale(1, 0.35);
-    sctx.arc(0, 0, orbR, 0, Math.PI * 2);
-    sctx.restore();
-    sctx.stroke();
-    sctx.globalAlpha = 1;
-    // Planet
-    const pg = sctx.createRadialGradient(orbX - 2, orbY - 2, 1, orbX, orbY, 6);
-    pg.addColorStop(0, '#66ddff');
-    pg.addColorStop(1, '#0066aa');
-    sctx.fillStyle = pg;
-    sctx.beginPath();
-    sctx.arc(orbX, orbY, 5, 0, Math.PI * 2);
-    sctx.fill();
+    ctx2.restore();
 }
+
+// =============================
+// LAUNCH ANIMATION STATE
+// =============================
+let launchPhase = 'idle';
+let launchTimer = 0;
+let launchStartTime = 0;
+let launchLastT = 0;
 
 // Start screen animation loop
 let startAnimId = null;
 function startScreenLoop(t){
-    if(gameStarted) return;
+    if(launchPhase === 'done') return;
+
+    // Update launch timer
+    if(launchPhase !== 'idle'){
+        const dt = launchLastT ? (t - launchLastT) : 16;
+        launchTimer += dt;
+
+        // Phase transitions
+        if(launchPhase === 'walking' && launchTimer >= 1500){
+            launchPhase = 'boarding'; launchTimer = 0;
+        }
+        else if(launchPhase === 'boarding' && launchTimer >= 500){
+            launchPhase = 'powerup'; launchTimer = 0;
+            // Fade the title out during powerup
+            document.getElementById('start-title').style.transition = 'opacity 1.2s ease';
+            document.getElementById('start-title').style.opacity = '0';
+        }
+        else if(launchPhase === 'powerup' && launchTimer >= 1500){
+            launchPhase = 'warp'; launchTimer = 0;
+        }
+        else if(launchPhase === 'warp' && launchTimer >= 800){
+            launchPhase = 'done';
+            finishLaunch();
+            return;
+        }
+    }
+    launchLastT = t;
+
     drawStartScreen(t);
     startAnimId = requestAnimationFrame(startScreenLoop);
 }
@@ -1160,6 +1389,28 @@ function startScreenLoop(t){
 requestAnimationFrame(startScreenLoop);
 
 function startGame(){
+    // Disable button
+    const btn = document.getElementById('start-btn');
+    btn.style.pointerEvents = 'none';
+    btn.style.opacity = '0.3';
+
+    // Fade out text elements
+    document.getElementById('start-subtitle').style.transition = 'opacity 0.5s';
+    document.getElementById('start-subtitle').style.opacity = '0';
+    document.getElementById('start-intro').style.transition = 'opacity 0.5s';
+    document.getElementById('start-intro').style.opacity = '0';
+    document.getElementById('start-explainer').style.transition = 'opacity 0.5s';
+    document.getElementById('start-explainer').style.opacity = '0';
+    document.getElementById('start-version').style.transition = 'opacity 0.5s';
+    document.getElementById('start-version').style.opacity = '0';
+    btn.style.transition = 'opacity 0.5s';
+
+    // Start animation sequence
+    launchPhase = 'walking';
+    launchTimer = 0;
+}
+
+function finishLaunch(){
     gameStarted = true;
     if(startAnimId) cancelAnimationFrame(startAnimId);
 
@@ -1172,6 +1423,7 @@ function startGame(){
     document.getElementById('hud').style.display = '';
     document.getElementById('zoom-hint').style.display = '';
     document.getElementById('tap-hint').classList.remove('hidden');
+    document.getElementById('follow-btn').style.display = '';
 
     // Start the game loop
     requestAnimationFrame(loop);
