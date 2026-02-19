@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Orbital Surface Simulation</title>
+<title>Jed in Space</title>
 <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
 <style>
 * { box-sizing: border-box; }
@@ -33,6 +33,180 @@ body::before {
     pointer-events:none;
     z-index:998;
 }
+
+/* ══════════════════════════════════════
+   START SCREEN
+══════════════════════════════════════ */
+#start-screen {
+    position: fixed;
+    inset: 0;
+    z-index: 500;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    pointer-events: auto;
+    transition: opacity 0.8s ease;
+}
+#start-screen.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+#start-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: clamp(36px, 8vw, 72px);
+    font-weight: 700;
+    letter-spacing: clamp(6px, 2vw, 16px);
+    color: #fff;
+    text-transform: uppercase;
+    text-align: center;
+    position: relative;
+    margin-bottom: 4px;
+    text-shadow:
+        0 0 20px rgba(0,170,255,0.8),
+        0 0 40px rgba(0,170,255,0.4),
+        0 0 80px rgba(0,170,255,0.2),
+        0 0 120px rgba(0,100,255,0.1);
+    animation: title-glow 3s ease-in-out infinite, title-float 6s ease-in-out infinite;
+}
+#start-title .highlight {
+    color: #0af;
+    text-shadow:
+        0 0 20px rgba(0,170,255,1),
+        0 0 40px rgba(0,170,255,0.6),
+        0 0 80px rgba(0,170,255,0.3);
+}
+
+@keyframes title-glow {
+    0%, 100% { filter: brightness(1); }
+    50% { filter: brightness(1.2); }
+}
+@keyframes title-float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+}
+
+#start-subtitle {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: clamp(9px, 1.8vw, 13px);
+    letter-spacing: clamp(4px, 1vw, 10px);
+    color: rgba(0,170,255,0.75);
+    text-transform: uppercase;
+    margin-bottom: 40px;
+    animation: subtitle-fade 2s ease-in-out infinite alternate;
+}
+@keyframes subtitle-fade {
+    from { opacity: 0.4; }
+    to { opacity: 0.8; }
+}
+
+/* Characters area — canvas drawn Jed + Rocket */
+#start-characters {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(20px, 6vw, 80px);
+    margin-bottom: 36px;
+    position: relative;
+}
+
+#start-canvas {
+    width: clamp(280px, 60vw, 500px);
+    height: clamp(180px, 30vw, 260px);
+}
+
+/* Explainer text */
+#start-explainer {
+    text-align: center;
+    max-width: 420px;
+    padding: 0 20px;
+    margin-bottom: 36px;
+}
+#start-explainer p {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: clamp(10px, 1.6vw, 13px);
+    line-height: 1.9;
+    letter-spacing: 1.5px;
+    color: rgba(165,225,255,0.7);
+    margin: 0 0 8px 0;
+}
+#start-explainer .em {
+    color: #0af;
+}
+#start-explainer .warn {
+    color: #ff6644;
+}
+
+/* Launch button */
+#start-btn {
+    font-family: 'Orbitron', sans-serif;
+    font-size: clamp(11px, 2vw, 15px);
+    letter-spacing: clamp(4px, 1vw, 8px);
+    text-transform: uppercase;
+    background: transparent;
+    border: 1.5px solid rgba(0,170,255,0.5);
+    color: #0af;
+    padding: clamp(12px, 2vw, 18px) clamp(28px, 5vw, 50px);
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    text-shadow: 0 0 12px rgba(0,170,255,0.6);
+}
+#start-btn:hover {
+    background: rgba(0,170,255,0.1);
+    border-color: #0af;
+    box-shadow:
+        0 0 20px rgba(0,170,255,0.3),
+        inset 0 0 20px rgba(0,170,255,0.05);
+    transform: scale(1.04);
+    letter-spacing: clamp(5px, 1.2vw, 10px);
+}
+#start-btn:active {
+    transform: scale(0.97);
+    background: rgba(0,170,255,0.2);
+}
+/* Sweep animation on button */
+#start-btn::before {
+    content: '';
+    position: absolute;
+    top: 0; left: -100%;
+    width: 100%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(0,170,255,0.15), transparent);
+    animation: btn-sweep 3s ease-in-out infinite;
+}
+@keyframes btn-sweep {
+    0% { left: -100%; }
+    50% { left: 100%; }
+    100% { left: 100%; }
+}
+
+/* Intro label under characters */
+#start-intro {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: clamp(9px, 1.6vw, 12px);
+    letter-spacing: 3px;
+    color: rgba(180,235,255,0.85);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    text-align: center;
+    text-shadow: 0 0 10px rgba(0,170,255,0.4);
+}
+
+/* Small version badge */
+#start-version {
+    position: fixed;
+    bottom: 14px;
+    right: 18px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 8px;
+    letter-spacing: 2px;
+    color: rgba(0,170,255,0.2);
+    z-index: 501;
+}
+
 
 /* ══════════════════════════════════════
    HUD — horizontal top bar
@@ -631,7 +805,30 @@ body::before {
 <body>
 <canvas id="sim"></canvas>
 
-<div id="hud">
+<!-- ══════════════════════════════════════
+     START SCREEN
+══════════════════════════════════════ -->
+<div id="start-screen">
+    <div id="start-title"><span class="highlight">JED</span> IN SPACE</div>
+    <div id="start-subtitle">◈ an orbital survival mission ◈</div>
+
+    <canvas id="start-canvas" width="500" height="260"></canvas>
+
+    <div id="start-intro">MEET JED — PILOT, EXPLORER, TERRIBLE AT PACKING</div>
+
+    <div id="start-explainer">
+        <p><span class="em">Tap planets</span> to fly there and resupply.</p>
+        <p>Jed walks the surface, grabs the cargo, and loads up and replenishes his supplies.</p>
+        <p><span class="warn">Oxygen, water, food, fuel & hull</span> all drain — keep them topped up.</p>
+        <p>Random space events will try to kill you. <span class="em">Don't let them.</span></p>
+    </div>
+
+    <button id="start-btn" onclick="startGame()">◈ LAUNCH MISSION ◈</button>
+
+    <div id="start-version">V1.0 — SOL 1</div>
+</div>
+
+<div id="hud" style="display:none;">
     <div id="hud-panel">
 
         <div id="hud-title">SHIP STATUS</div>
@@ -684,9 +881,9 @@ body::before {
     </div>
 </div>
 
-<div id="zoom-hint">SCROLL/PINCH TO ZOOM &nbsp;·&nbsp; DRAG TO PAN</div>
+<div id="zoom-hint" style="display:none;">SCROLL/PINCH TO ZOOM &nbsp;·&nbsp; DRAG TO PAN</div>
 
-<div id="tap-hint">◈ TAP A PLANET TO SET COURSE ◈</div>
+<div id="tap-hint" class="hidden">◈ TAP A PLANET TO SET COURSE ◈</div>
 
 <div id="debug-panel">
     <div id="debug-header" onclick="collapseDebug()">
@@ -728,6 +925,258 @@ body::before {
 <script>
 const canvas = document.getElementById("sim");
 const ctx = canvas.getContext("2d");
+
+// =============================
+// GAME STARTED FLAG
+// =============================
+let gameStarted = false;
+
+// =============================
+// START SCREEN CANVAS RENDERING
+// =============================
+const startCanvas = document.getElementById("start-canvas");
+const sctx = startCanvas.getContext("2d");
+
+function drawStartScreen(t){
+    const W = startCanvas.width;
+    const H = startCanvas.height;
+    sctx.clearRect(0, 0, W, H);
+
+    // ── Background: subtle star dust ──
+    sctx.globalAlpha = 0.4;
+    for(let i = 0; i < 40; i++){
+        const sx = (Math.sin(i * 73.7 + t * 0.0002) * 0.5 + 0.5) * W;
+        const sy = (Math.cos(i * 51.3 + t * 0.00015) * 0.5 + 0.5) * H;
+        const twinkle = 0.3 + 0.7 * Math.sin(t * 0.002 + i * 1.3);
+        sctx.globalAlpha = 0.15 * twinkle;
+        sctx.fillStyle = '#8af';
+        sctx.beginPath();
+        sctx.arc(sx, sy, 0.8, 0, Math.PI * 2);
+        sctx.fill();
+    }
+    sctx.globalAlpha = 1;
+
+    // ── Ground line ──
+    const groundY = H - 30;
+    sctx.strokeStyle = 'rgba(0,170,255,0.15)';
+    sctx.lineWidth = 1;
+    sctx.beginPath();
+    sctx.moveTo(60, groundY);
+    sctx.lineTo(W - 60, groundY);
+    sctx.stroke();
+    // Glow on ground
+    const gg = sctx.createLinearGradient(60, groundY - 2, 60, groundY + 8);
+    gg.addColorStop(0, 'rgba(0,170,255,0.06)');
+    gg.addColorStop(1, 'rgba(0,0,0,0)');
+    sctx.fillStyle = gg;
+    sctx.fillRect(60, groundY, W - 120, 10);
+
+    // ── ROCKET (right side) ──
+    const rocketX = W * 0.68;
+    const rocketBaseY = groundY;
+    const rocketBob = Math.sin(t * 0.0015) * 3;
+    const rs = 2.4; // rocket scale — bigger than Jed (1.6)
+
+    sctx.save();
+    sctx.translate(rocketX, rocketBaseY + rocketBob);
+    sctx.scale(rs, rs);
+
+    // Exhaust glow (idle shimmer)
+    const exGlow = sctx.createRadialGradient(0, 2, 2, 0, 8, 20);
+    exGlow.addColorStop(0, `rgba(255,160,40,${0.15 + 0.1 * Math.sin(t * 0.004)})`);
+    exGlow.addColorStop(1, 'rgba(255,80,0,0)');
+    sctx.fillStyle = exGlow;
+    sctx.beginPath();
+    sctx.arc(0, 8, 20, 0, Math.PI * 2);
+    sctx.fill();
+
+    // Nozzle
+    sctx.fillStyle = '#667788';
+    sctx.fillRect(-5, -4, 10, 8);
+
+    // Body
+    sctx.fillStyle = '#dde8f0';
+    sctx.beginPath();
+    if(sctx.roundRect) { sctx.roundRect(-8, -44, 16, 42, 3); sctx.fill(); }
+    else { sctx.fillRect(-8, -44, 16, 42); }
+
+    // Cockpit
+    sctx.fillStyle = 'rgba(0,200,255,0.7)';
+    sctx.beginPath();
+    sctx.ellipse(0, -36, 5, 8, 0, 0, Math.PI * 2);
+    sctx.fill();
+
+    // Wings
+    sctx.fillStyle = '#aabbc8';
+    sctx.beginPath();
+    sctx.moveTo(-8, -14); sctx.lineTo(-20, -4); sctx.lineTo(-8, -8);
+    sctx.closePath(); sctx.fill();
+    sctx.beginPath();
+    sctx.moveTo(8, -14); sctx.lineTo(20, -4); sctx.lineTo(8, -8);
+    sctx.closePath(); sctx.fill();
+
+    // Ship label (undo scale so text stays readable)
+    sctx.scale(1/rs, 1/rs);
+    sctx.font = "7px 'Share Tech Mono'";
+    sctx.fillStyle = 'rgba(0,170,255,0.5)';
+    sctx.textAlign = 'center';
+    sctx.fillText('THE SHIP', 0, -52 * rs);
+
+    sctx.restore();
+
+    // ── JED (left side, waving) ──
+    const jedX = W * 0.32;
+    const jedBaseY = groundY;
+    const jedBob = Math.sin(t * 0.002 + 1) * 2;
+
+    sctx.save();
+    sctx.translate(jedX, jedBaseY + jedBob);
+    const s = 1.6; // scale Jed up a bit
+    sctx.scale(s, s);
+
+    // Shadow under Jed
+    sctx.globalAlpha = 0.15;
+    sctx.fillStyle = '#0af';
+    sctx.beginPath();
+    sctx.ellipse(0, 2, 10, 3, 0, 0, Math.PI * 2);
+    sctx.fill();
+    sctx.globalAlpha = 1;
+
+    // Legs (slight idle sway)
+    const legSway = Math.sin(t * 0.0018) * 1;
+    sctx.fillStyle = '#aabbc8';
+    sctx.fillRect(-5 + legSway, -12, 4, 12);
+    sctx.fillRect(1 - legSway, -12, 4, 12);
+
+    // Suit body
+    sctx.fillStyle = '#dde8f0';
+    sctx.fillRect(-7, -30, 14, 20);
+
+    // Backpack
+    sctx.fillStyle = '#99aabb';
+    sctx.fillRect(7, -28, 5, 14);
+
+    // Left arm (hanging)
+    sctx.fillStyle = '#ccd8e4';
+    sctx.save();
+    sctx.translate(-7, -26);
+    sctx.rotate(Math.sin(t * 0.002) * 0.08);
+    sctx.fillRect(-4, 0, 4, 14);
+    sctx.restore();
+
+    // Right arm (WAVING! — two segments for natural motion)
+    sctx.fillStyle = '#ccd8e4';
+    sctx.save();
+    sctx.translate(7, -28);
+    // Upper arm raised up and slightly out
+    const upperArmAngle = -1.4;
+    sctx.rotate(upperArmAngle);
+    sctx.fillRect(0, 0, 4, 12);
+    // Forearm — pivots at elbow for the actual wave
+    sctx.translate(2, 12);
+    const waveAngle = -Math.PI/2 + Math.sin(t * 0.008) * 0.7;
+    sctx.rotate(waveAngle);
+    sctx.fillRect(-2, 0, 4, 10);
+    // Glove / hand
+    sctx.fillStyle = '#dde8f0';
+    sctx.beginPath();
+    sctx.arc(0, 11, 3, 0, Math.PI * 2);
+    sctx.fill();
+    sctx.restore();
+
+    // Helmet
+    sctx.fillStyle = 'rgba(200,230,255,0.95)';
+    sctx.beginPath();
+    sctx.arc(0, -38, 10, 0, Math.PI * 2);
+    sctx.fill();
+    // Visor
+    sctx.fillStyle = 'rgba(0,160,255,0.45)';
+    sctx.beginPath();
+    sctx.arc(0, -37, 7, 0, Math.PI * 2);
+    sctx.fill();
+    // Visor highlight
+    sctx.fillStyle = 'rgba(255,255,255,0.3)';
+    sctx.beginPath();
+    sctx.ellipse(-2, -40, 3, 2, -0.3, 0, Math.PI * 2);
+    sctx.fill();
+
+    // Antenna
+    sctx.strokeStyle = 'rgba(200,230,255,0.6)';
+    sctx.lineWidth = 1;
+    sctx.beginPath();
+    sctx.moveTo(0, -48);
+    sctx.lineTo(3, -56);
+    sctx.stroke();
+    // Antenna tip blink
+    sctx.fillStyle = t % 1200 < 600 ? '#0af' : '#066';
+    sctx.beginPath();
+    sctx.arc(3, -57, 2, 0, Math.PI * 2);
+    sctx.fill();
+
+    // Jed label
+    sctx.scale(1/s, 1/s); // undo scale for text
+    sctx.font = "7px 'Share Tech Mono'";
+    sctx.fillStyle = 'rgba(0,170,255,0.5)';
+    sctx.textAlign = 'center';
+    sctx.fillText('JED', 0, -62 * s);
+
+    sctx.restore();
+
+    // ── Small orbiting planet decoration ──
+    const orbR = 55;
+    const orbAngle = t * 0.001;
+    const orbX = W * 0.5 + Math.cos(orbAngle) * orbR;
+    const orbY = 35 + Math.sin(orbAngle) * orbR * 0.35;
+    // Orbit trail
+    sctx.globalAlpha = 0.08;
+    sctx.strokeStyle = '#0af';
+    sctx.lineWidth = 0.5;
+    sctx.beginPath();
+    sctx.save();
+    sctx.translate(W * 0.5, 35);
+    sctx.scale(1, 0.35);
+    sctx.arc(0, 0, orbR, 0, Math.PI * 2);
+    sctx.restore();
+    sctx.stroke();
+    sctx.globalAlpha = 1;
+    // Planet
+    const pg = sctx.createRadialGradient(orbX - 2, orbY - 2, 1, orbX, orbY, 6);
+    pg.addColorStop(0, '#66ddff');
+    pg.addColorStop(1, '#0066aa');
+    sctx.fillStyle = pg;
+    sctx.beginPath();
+    sctx.arc(orbX, orbY, 5, 0, Math.PI * 2);
+    sctx.fill();
+}
+
+// Start screen animation loop
+let startAnimId = null;
+function startScreenLoop(t){
+    if(gameStarted) return;
+    drawStartScreen(t);
+    startAnimId = requestAnimationFrame(startScreenLoop);
+}
+// Kick off the start screen animation
+requestAnimationFrame(startScreenLoop);
+
+function startGame(){
+    gameStarted = true;
+    if(startAnimId) cancelAnimationFrame(startAnimId);
+
+    // Fade out start screen
+    const ss = document.getElementById('start-screen');
+    ss.classList.add('hidden');
+    setTimeout(() => { ss.style.display = 'none'; }, 900);
+
+    // Show HUD and hints
+    document.getElementById('hud').style.display = '';
+    document.getElementById('zoom-hint').style.display = '';
+    document.getElementById('tap-hint').classList.remove('hidden');
+
+    // Start the game loop
+    requestAnimationFrame(loop);
+}
+
 
 // =============================
 // DEBUG LOG
@@ -913,6 +1362,7 @@ function planetAt(wx, wy, padding=10){
 let hoveredPlanet = null;
 
 function setPlayerTarget(planet){
+    if(!gameStarted) return;
     if(!ship.spawned) return;
     if(!planet) return;
 
@@ -942,12 +1392,14 @@ let dragging = false, dragStart = {x:0,y:0}, panStart = {x:0,y:0};
 let dragMoved = false;
 
 canvas.addEventListener("mousedown", e => {
+    if(!gameStarted) return;
     dragging = true;
     dragMoved = false;
     dragStart = { x: e.clientX, y: e.clientY };
     panStart  = { x: camera.panX, y: camera.panY };
 });
 canvas.addEventListener("mousemove", e => {
+    if(!gameStarted) return;
     if(dragging && !camera.follow){
         const dx = e.clientX - dragStart.x;
         const dy = e.clientY - dragStart.y;
@@ -964,6 +1416,7 @@ canvas.addEventListener("mousemove", e => {
     }
 });
 window.addEventListener("mouseup", e => {
+    if(!gameStarted) return;
     if(dragging && !dragMoved){
         // Click — check planet
         const w = screenToWorld(e.clientX, e.clientY);
@@ -988,6 +1441,7 @@ function getTouchMid(t1, t2){
 }
 
 canvas.addEventListener("touchstart", e => {
+    if(!gameStarted) return;
     e.preventDefault();
     if(e.touches.length === 1){
         // single finger pan
@@ -1007,6 +1461,7 @@ canvas.addEventListener("touchstart", e => {
 }, { passive: false });
 
 canvas.addEventListener("touchmove", e => {
+    if(!gameStarted) return;
     e.preventDefault();
     if(camera.follow) return;
     if(e.touches.length === 1 && touchPanStart){
@@ -1033,6 +1488,7 @@ canvas.addEventListener("touchmove", e => {
 }, { passive: false });
 
 canvas.addEventListener("touchend", e => {
+    if(!gameStarted) return;
     e.preventDefault();
     // Tap detection — single touch lifted without significant movement
     if(e.changedTouches.length === 1 && touchPanStart && !touchPanStart.moved){
@@ -1134,6 +1590,14 @@ function resize(){
     if(!camera.follow){
         camera.zoom = overviewZoom();
         camera.targetZoom = camera.zoom;
+    }
+    // Resize start canvas for DPI
+    const sc = document.getElementById('start-canvas');
+    if(sc){
+        const rect = sc.getBoundingClientRect();
+        sc.width = rect.width * (window.devicePixelRatio || 1);
+        sc.height = rect.height * (window.devicePixelRatio || 1);
+        sctx.setTransform(window.devicePixelRatio || 1, 0, 0, window.devicePixelRatio || 1, 0, 0);
     }
 }
 window.addEventListener("resize", resize);
@@ -1952,7 +2416,7 @@ if(this.state === "loading"){
     }
 
     this.thrusting = false;
-    this.updateHUD();  // ✅ add this
+    this.updateHUD();
     return;
 }
 
@@ -2812,11 +3276,12 @@ function triggerGameOver(resource){
 }
 
 // =============================
-// MAIN LOOP
+// MAIN LOOP (only runs after start)
 // =============================
 let last = 0;
 function loop(t){
     if(gameOver) return;
+    if(!gameStarted) return;
     const dt = Math.min(t - last, 50) * speedMultiplier;
     last = t;
 
@@ -2914,7 +3379,19 @@ function loop(t){
 
     requestAnimationFrame(loop);
 }
-requestAnimationFrame(loop);
+
+// =============================
+// BACKGROUND STARFIELD FOR START SCREEN
+// =============================
+// Render a gentle animated starfield behind the start screen
+function startBgLoop(t){
+    if(gameStarted) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    drawNebula();
+    drawStars(t);
+    requestAnimationFrame(startBgLoop);
+}
+requestAnimationFrame(startBgLoop);
 </script>
 </body>
 </html>
