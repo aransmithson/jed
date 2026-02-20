@@ -95,7 +95,7 @@ body::before {
     letter-spacing: clamp(4px, 1vw, 10px);
     color: rgba(0,170,255,0.5);
     text-transform: uppercase;
-    margin-bottom: 40px;
+    margin-bottom: 5px;
     animation: subtitle-fade 2s ease-in-out infinite alternate;
 }
 @keyframes subtitle-fade {
@@ -564,14 +564,14 @@ body::before {
 /* ── Mute button ── */
 #mute-btn {
     position: fixed;
-    top: 12px;
-    right: 16px;
+    bottom: 20px;
+    left: 130px;
     z-index: 600;
     font-family: 'Share Tech Mono', monospace;
     font-size: 16px;
-    background: rgba(0,10,25,0.85);
-    border: 1px solid rgba(0,170,255,0.3);
-    color: #0af;
+    background: rgba(0,10,25,0.9);
+    border: 1px solid rgba(0,170,255,0.35);
+    color: #4a7a9a;
     width: 36px;
     height: 36px;
     display: flex;
@@ -585,6 +585,7 @@ body::before {
 #mute-btn:hover {
     background: rgba(0,170,255,0.15);
     border-color: #0af;
+    color: #0af;
     box-shadow: 0 0 10px rgba(0,170,255,0.25);
 }
 #mute-btn.muted {
@@ -596,10 +597,167 @@ body::before {
     border-color: #ff4466;
     box-shadow: 0 0 10px rgba(255,68,102,0.2);
 }
-/* Push mute button below HUD on mobile */
+/* Push mute button on mobile */
 @media (max-width: 680px) {
-    #mute-btn { top: auto; bottom: 20px; right: 60px; }
+    #mute-btn { left: 130px; }
 }
+
+/* ── Planet navigation bar (follow-cam mode) ── */
+#planet-nav {
+    position: fixed;
+    bottom: 64px;
+    left: 20px;
+    z-index: 15;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    pointer-events: auto;
+    background: rgba(0,5,16,0.92);
+    border: 1px solid rgba(0,170,255,0.28);
+    padding: 10px 8px 8px;
+    min-width: 100px;
+    max-height: calc(100vh - 120px);
+    overflow-y: auto;
+    overflow-x: hidden;
+    transform: translateX(-110%);
+    transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1),
+                opacity 0.28s ease;
+    opacity: 0;
+    box-shadow: 4px 0 24px rgba(0,0,0,0.6), 0 0 16px rgba(0,170,255,0.08);
+}
+#planet-nav.visible {
+    transform: translateX(0);
+    opacity: 1;
+}
+#planet-nav::before {
+    content: 'NAV';
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 7px;
+    letter-spacing: 3px;
+    color: rgba(0,170,255,0.4);
+    text-align: center;
+    margin-bottom: 4px;
+    display: block;
+    padding-bottom: 5px;
+    border-bottom: 1px solid rgba(0,170,255,0.12);
+}
+/* Custom scrollbar */
+#planet-nav::-webkit-scrollbar { width: 3px; }
+#planet-nav::-webkit-scrollbar-track { background: transparent; }
+#planet-nav::-webkit-scrollbar-thumb { background: rgba(0,170,255,0.2); border-radius: 2px; }
+
+.planet-nav-btn {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    border: 1px solid;
+    background: rgba(0,10,25,0.7);
+    padding: 7px 10px;
+    cursor: pointer;
+    transition: background 0.15s, box-shadow 0.15s, transform 0.1s, border-color 0.2s;
+    white-space: nowrap;
+    text-align: left;
+    width: 100%;
+    position: relative;
+    overflow: hidden;
+    -webkit-tap-highlight-color: transparent;
+    min-height: 36px; /* mobile touch target */
+}
+.planet-nav-btn::before {
+    content: '▸ ';
+    opacity: 0.5;
+    font-size: 7px;
+}
+.planet-nav-btn::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.04), transparent);
+    transform: translateX(-100%);
+    transition: transform 0s;
+}
+.planet-nav-btn:hover::after,
+.planet-nav-btn:active::after {
+    transform: translateX(100%);
+    transition: transform 0.4s ease;
+}
+.planet-nav-btn:hover {
+    filter: brightness(1.5);
+    box-shadow: 0 0 10px currentColor, inset 0 0 8px rgba(255,255,255,0.04);
+    transform: translateX(2px);
+}
+.planet-nav-btn:active {
+    transform: translateX(1px) scale(0.97);
+}
+.planet-nav-btn.active-target {
+    filter: brightness(1.8);
+    box-shadow: 0 0 12px currentColor;
+}
+.planet-nav-btn.active-target::before {
+    content: '● ';
+    opacity: 1;
+    animation: nav-dot-pulse 0.8s ease-in-out infinite alternate;
+}
+@keyframes nav-dot-pulse {
+    from { opacity: 1; }
+    to   { opacity: 0.3; }
+}
+/* Stagger animation for each button when nav opens */
+.planet-nav-btn:nth-child(2) { animation-delay: 0.04s; }
+.planet-nav-btn:nth-child(3) { animation-delay: 0.08s; }
+.planet-nav-btn:nth-child(4) { animation-delay: 0.12s; }
+.planet-nav-btn:nth-child(5) { animation-delay: 0.16s; }
+.planet-nav-btn:nth-child(6) { animation-delay: 0.20s; }
+
+#planet-nav.visible .planet-nav-btn {
+    animation: nav-btn-in 0.3s ease both;
+}
+@keyframes nav-btn-in {
+    from { opacity: 0; transform: translateX(-12px); }
+    to   { opacity: 1; transform: translateX(0); }
+}
+
+/* ── Mobile adjustments ── */
+@media (max-width: 680px) {
+    #planet-nav {
+        bottom: auto;
+        top: 60px;
+        left: 50%;
+        transform: translateX(-50%) translateY(-120%);
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: center;
+        min-width: unset;
+        max-width: calc(100vw - 24px);
+        padding: 8px 6px 6px;
+        gap: 5px;
+        max-height: 160px;
+    }
+    #planet-nav.visible {
+        transform: translateX(-50%) translateY(0);
+        opacity: 1;
+    }
+    #planet-nav::before {
+        width: 100%;
+        text-align: center;
+        margin-bottom: 2px;
+    }
+    .planet-nav-btn {
+        font-size: 8px;
+        padding: 6px 10px;
+        min-height: 34px;
+        width: auto;
+    }
+    #planet-nav.visible .planet-nav-btn {
+        animation: nav-btn-in-mobile 0.3s ease both;
+    }
+    @keyframes nav-btn-in-mobile {
+        from { opacity: 0; transform: translateY(-8px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+}
+
 
 /* ── Game over ── */
 #gameover {
@@ -852,7 +1010,11 @@ body::before {
 </head>
 <body>
 <canvas id="sim"></canvas>
+<button id="follow-btn" style="display:none;">CAM: OFF</button>
 <button id="mute-btn" style="display:none;" title="Toggle Sound">🔊</button>
+
+<!-- Planet nav bar (shown in follow-cam mode) -->
+<div id="planet-nav" style="display:none;"></div>
 
 <!-- ══════════════════════════════════════
      START SCREEN
@@ -863,18 +1025,18 @@ body::before {
 
     <canvas id="start-canvas" width="500" height="260"></canvas>
 
-    <div id="start-intro">MEET JED — PILOT, EXPLORER, TERRIBLE AT PACKING</div>
+    <div id="start-intro">MEET JED — PILOT, EXPLORER, ALL ROUND COOL GUY</div>
 
     <div id="start-explainer">
         <p><span class="em">Tap planets</span> to fly there and resupply.</p>
         <p>Jed walks the surface, grabs the cargo, and loads up.</p>
-        <p><span class="warn">Oxygen, water, food, fuel & hull</span> all drain — keep them alive.</p>
+        <p><span class="warn">Oxygen, water, food, fuel & hull</span> all drain — keep them topped up.</p>
         <p>Random space events will try to kill you. <span class="em">Don't let them.</span></p>
     </div>
 
     <button id="start-btn" onclick="startGame()">◈ LAUNCH MISSION ◈</button>
 
-    <div id="start-version">V1.0 — SOL 1</div>
+    <div id="start-version">V0.2 — SOL 1</div>
 </div>
 
 <div id="hud" style="display:none;">
@@ -928,8 +1090,6 @@ body::before {
 
     </div>
 </div>
-
-<button id="follow-btn" style="display:none;">CAM: OFF</button>
 
 <div id="zoom-hint" style="display:none;">SCROLL/PINCH TO ZOOM &nbsp;·&nbsp; DRAG TO PAN</div>
 
@@ -1026,10 +1186,12 @@ function drawStartScreen(t){
     }
 
     // ── Animation state ──
-    const rocketHomeX = W * 0.68;
+    const rocketHomeX = W * 0.50;
     const rocketHomeY = groundY;
-    const jedHomeX = W * 0.32;
+    const jedHomeX = W * 0.18;
     const jedHomeY = groundY;
+    const packagesX = W * 0.82;
+    const packagesY = groundY;
     const rs = 2.4;
     const s = 1.6;
 
@@ -1103,6 +1265,10 @@ function drawStartScreen(t){
         // Draw warp streak at rocket position
         const warpEase = 1 - Math.pow(1-p, 2);
         sctx.save();
+        // Clip to canvas bounds so warp streak stays inside
+        sctx.beginPath();
+        sctx.rect(0, 0, W, H);
+        sctx.clip();
         sctx.translate(rocketHomeX, rocketHomeY);
 
         const streakW = warpEase * 350 + 10;
@@ -1173,6 +1339,11 @@ function drawStartScreen(t){
 
     // ── Draw launch dust particles ──
     drawLaunchDust(sctx, t);
+
+    // ── Draw resource packages (right side) ──
+    if(launchPhase === 'idle'){
+        drawPackageStack(sctx, packagesX, packagesY, t);
+    }
 
     // ── Draw rocket ──
     drawRocket(sctx, rocketX, rocketY + rocketBob, rocketBob, rocketScale, t, showExhaust, exhaustIntensity, showLabels, 1);
@@ -1384,6 +1555,45 @@ function drawJed(ctx2, x, y, sc, t, waving, walking, labels){
     ctx2.restore();
 }
 
+// ── Package stack drawing helper (start screen) ──
+function drawPackageStack(ctx2, x, y, t){
+    ctx2.save();
+    const boxW = 18, boxH = 14;
+    const colors = ['#ffaa00','#44dd77','#00bbff','#cc44ff'];
+    // Draw 4 stacked crates
+    for(let i = 0; i < 4; i++){
+        const bx = x + (i % 2 === 0 ? -2 : 2);
+        const by = y - i * (boxH - 2) - boxH;
+        const col = colors[i];
+        // Box body
+        ctx2.fillStyle = col;
+        ctx2.globalAlpha = 0.75 + 0.1 * Math.sin(t * 0.002 + i);
+        ctx2.fillRect(bx - boxW/2, by, boxW, boxH);
+        // Top face
+        ctx2.fillStyle = 'rgba(255,255,255,0.15)';
+        ctx2.fillRect(bx - boxW/2, by, boxW, 3);
+        // Cross straps
+        ctx2.strokeStyle = 'rgba(0,0,0,0.3)';
+        ctx2.lineWidth = 1;
+        ctx2.beginPath();
+        ctx2.moveTo(bx, by); ctx2.lineTo(bx, by + boxH);
+        ctx2.moveTo(bx - boxW/2, by + boxH/2); ctx2.lineTo(bx + boxW/2, by + boxH/2);
+        ctx2.stroke();
+        // Border
+        ctx2.globalAlpha = 0.5;
+        ctx2.strokeStyle = 'rgba(255,255,255,0.4)';
+        ctx2.lineWidth = 0.8;
+        ctx2.strokeRect(bx - boxW/2, by, boxW, boxH);
+    }
+    ctx2.globalAlpha = 0.5 + 0.2 * Math.sin(t * 0.0015);
+    ctx2.font = "7px 'Share Tech Mono'";
+    ctx2.fillStyle = 'rgba(0,170,255,0.6)';
+    ctx2.textAlign = 'center';
+    ctx2.globalAlpha = 1;
+    ctx2.fillText('CARGO', x, y + 10);
+    ctx2.restore();
+}
+
 // =============================
 // LAUNCH ANIMATION STATE
 // =============================
@@ -1414,6 +1624,7 @@ function startScreenLoop(t){
         }
         else if(launchPhase === 'powerup' && launchTimer >= 1500){
             launchPhase = 'warp'; launchTimer = 0;
+            AudioManager.playWarp();
         }
         else if(launchPhase === 'warp' && launchTimer >= 800){
             launchPhase = 'done';
@@ -1430,6 +1641,9 @@ function startScreenLoop(t){
 requestAnimationFrame(startScreenLoop);
 
 function startGame(){
+    // Unlock audio context on user gesture
+    AudioManager.onUserInteract();
+
     // Disable button
     const btn = document.getElementById('start-btn');
     btn.style.pointerEvents = 'none';
@@ -1660,27 +1874,38 @@ function setPlayerTarget(planet){
     if(!ship.spawned) return;
     if(!planet) return;
 
-    // Don't re-target the planet we're currently landed on
+    // Don't re-target the planet we're currently landed on/loading at
     if(planet === ship.landedPlanet) return;
 
-    showNotif(`◈ COURSE SET: ${planet.name.toUpperCase()}`, '#0af');
-    dbg(`▶ PLAYER: GO TO ${planet.name.toUpperCase()}`, 'good');
     AudioManager.playConfirm();
 
     // Hide tap hint once player has used it
     const hint = document.getElementById('tap-hint');
     if(hint) hint.classList.add('hidden');
 
+    const onWorld = ship.state === "landed" || ship.state === "eva" || ship.state === "loading";
+
     if(ship.state === "idle" || ship.state === "transfer"){
         ship.target = planet;
         ship.nextTarget = null;
         ship.state = "transfer";
         ship.departureTimer = 0;
+        showNotif(`◈ COURSE SET: ${planet.name.toUpperCase()}`, '#0af');
+        dbg(`▶ PLAYER: GO TO ${planet.name.toUpperCase()}`, 'good');
+    } else if(onWorld || ship.state === "takeoff"){
+        // Always allow queueing while Jed is on-world or during takeoff
+        ship.nextTarget = planet;
+        const label = onWorld ? 'NEXT' : 'QUEUED';
+        showNotif(`◈ ${label}: ${planet.name.toUpperCase()}`, '#6af');
+        dbg(`▶ PLAYER: QUEUE ${planet.name.toUpperCase()} (state=${ship.state})`, 'good');
     } else {
-        // Queued: will fly there after current action (loading/eva/landed/takeoff)
         ship.nextTarget = planet;
         showNotif(`◈ QUEUED: ${planet.name.toUpperCase()}`, '#6af');
+        dbg(`▶ PLAYER: QUEUE ${planet.name.toUpperCase()} (state=${ship.state})`, 'good');
     }
+
+    // Update planet nav highlight
+    updatePlanetNavHighlight();
 }
 
 let dragging = false, dragStart = {x:0,y:0}, panStart = {x:0,y:0};
@@ -1809,9 +2034,19 @@ followBtn.addEventListener("click", () => {
     followBtn.textContent = "CAM: " + (camera.follow ? "ON" : "OFF");
     followBtn.classList.toggle("active", camera.follow);
 
+    // Animate planet nav in/out
+    const pNav = document.getElementById('planet-nav');
     if(camera.follow){
+        pNav.style.display = 'flex';
+        // Slight delay so display:flex is applied before transition fires
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+            pNav.classList.add('visible');
+        }));
         camera.targetZoom = FOLLOW_ZOOM;
     } else {
+        pNav.classList.remove('visible');
+        // Hide after transition completes
+        setTimeout(() => { if(!camera.follow) pNav.style.display = 'none'; }, 350);
         camera.targetZoom = overviewZoom();
         camera.panX = 0;
         camera.panY = 0;
@@ -2158,6 +2393,47 @@ const planets = [
     new Planet("Fuel",   0.76, 17, "#dd8800", "fuel",   "#dd8800"),
     new Planet("Repair", 0.96, 16, "#aa44ff", "repair", "#aa44ff"),
 ];
+
+// Build planet nav buttons
+const _navBtnMap = new Map(); // planet → button element
+
+(function buildPlanetNav(){
+    const pColors = { oxygen:'#00bbff', water:'#4488ff', food:'#44dd77', fuel:'#ffaa00', repair:'#cc44ff' };
+    const nav = document.getElementById('planet-nav');
+    for(const p of planets){
+        const btn = document.createElement('button');
+        btn.className = 'planet-nav-btn';
+        btn.textContent = p.name.toUpperCase();
+        const col = pColors[p.resource] || '#0af';
+        btn.style.color = col;
+        btn.style.borderColor = col + '44';
+        _navBtnMap.set(p, btn);
+
+        let _touchActive = false;
+        btn.addEventListener('touchstart', (e) => {
+            e.stopPropagation();
+            _touchActive = true;
+        }, { passive: true });
+        btn.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if(_touchActive){ _touchActive = false; setPlayerTarget(p); }
+        }, { passive: false });
+        btn.addEventListener('touchcancel', () => { _touchActive = false; });
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            setPlayerTarget(p);
+        });
+        nav.appendChild(btn);
+    }
+})();
+
+function updatePlanetNavHighlight(){
+    for(const [p, btn] of _navBtnMap){
+        const isTarget  = ship && (ship.target === p || ship.nextTarget === p);
+        btn.classList.toggle('active-target', isTarget);
+    }
+}
 
 // =============================
 // THRUST TRAIL
@@ -2696,6 +2972,7 @@ if(this.state === "loading"){
 
     if(progress >= 1){
         this.loadingResource = null;
+        AudioManager.stopLoading();
 
         // Increment missions counter
         missionsCompleted++;
@@ -2898,7 +3175,8 @@ this.integrity = Math.max(0, this.integrity - impactDmg);
         if(rowEl)
             rowEl.classList.toggle('critical', val < 15);
 
-        // Override bar colour to red when critical
+        // Play danger sound when a resource first enters critical
+        if(val < 15 && val > 0) AudioManager.playDanger();
         if(bar){
             if(val < 15){
                 bar.style.background = 'linear-gradient(90deg,#aa0000,#ff2222)';
@@ -2930,6 +3208,7 @@ this.integrity = Math.max(0, this.integrity - impactDmg);
     }
     if(intValEl) intValEl.textContent = intVal;
     if(intRowEl) intRowEl.classList.toggle('critical', intVal < 20);
+    if(intVal < 20 && intVal > 0) AudioManager.playDanger();
     if(intVal <= 0 && this.spawned && !gameOver)
         triggerGameOver('integrity');
 
@@ -3169,6 +3448,7 @@ class Astronaut {
                     ship.loadingResource = this.planet.resource;
                     ship.loadingTimer = 0;
                     ship.state = "loading";
+                    AudioManager.startLoading();
                 }
 
             } else {
@@ -3564,8 +3844,7 @@ const RESOURCE_NAMES = { oxygen:'OXYGEN', water:'WATER', food:'FOOD', fuel:'FUEL
 
 function triggerGameOver(resource){
     gameOver = true;
-    AudioManager.loopAudio.pause();
-    AudioManager.playWarning();
+    AudioManager.playEnding();
     document.getElementById('gameover-reason').textContent =
         RESOURCE_NAMES[resource] + ' DEPLETED — CREW LOST';
     const scoreEl = document.getElementById('gameover-score');
@@ -3650,6 +3929,7 @@ function loop(t){
     pkg.update(dt);
     chooseNext();
     updateEvents(dt);
+    if(camera.follow) updatePlanetNavHighlight();
 
     // Oxygen warning monitor
     if(ship.spawned && !gameOver){
@@ -3672,9 +3952,6 @@ function loop(t){
     // ── Screen flash (events) ─────────────────────────────────────────────
     drawScreenFlash();
 
-    // ── Minimap ──────────────────────────────────────────────────────────
-    drawMinimap(t);
-
     requestAnimationFrame(loop);
 }
 
@@ -3695,21 +3972,40 @@ function startBgLoop(t){
 const AudioManager = {
     muted: false,
     started: false,
+    _userInteracted: false,       // true after first user click (Launch)
     loopAudio: null,
     warnAudio: null,
     confirmAudio: null,
+    dangerAudio: null,
+    endingAudio: null,
+    loadingAudio: null,
+    warpAudio: null,
     _wasPlayingBeforeHidden: false,
+    _dangerCooldown: 0,           // timestamp of last danger play
+    _isLoadingPlaying: false,     // track loading sound state
 
     init() {
-        // Create audio elements
+        // ── Create audio elements ──
         this.loopAudio = new Audio('loop.mp3');
         this.loopAudio.loop = true;
         this.loopAudio.volume = 0.4;
-        // Preload one-shots
+
         this.warnAudio = new Audio('warning.mp3');
         this.warnAudio.volume = 0.6;
         this.confirmAudio = new Audio('confirm.mp3');
         this.confirmAudio.volume = 0.5;
+
+        this.dangerAudio = new Audio('danger.mp3');
+        this.dangerAudio.volume = 0.55;
+        this.endingAudio = new Audio('ending.mp3');
+        this.endingAudio.volume = 0.7;
+
+        this.loadingAudio = new Audio('loading.mp3');
+        this.loadingAudio.volume = 0.45;
+        this.loadingAudio.loop = true;   // loops while loading
+
+        this.warpAudio = new Audio('warp.mp3');
+        this.warpAudio.volume = 0.6;
 
         // ── Visibility change: pause/resume when tab hidden ──
         // Works on PC (all browsers), Android Chrome, iOS Safari
@@ -3735,7 +4031,6 @@ const AudioManager = {
             e.stopPropagation();
             this.toggleMute();
         });
-        // Also handle touch to avoid double-fire on mobile
         muteBtn.addEventListener('touchend', (e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -3743,33 +4038,78 @@ const AudioManager = {
         });
     },
 
+    // Called when user clicks Launch — unlocks audio context
+    onUserInteract() {
+        this._userInteracted = true;
+        document.getElementById('mute-btn').style.display = 'flex';
+    },
+
     startLoop() {
         if (this.started) return;
         this.started = true;
-        document.getElementById('mute-btn').style.display = 'flex';
         if (!this.muted) {
-            // Many browsers require a user gesture before playing audio.
-            // startGame() is triggered by a button click, so we're good.
             const p = this.loopAudio.play();
             if (p && p.catch) p.catch(() => {});
         }
     },
 
-    playWarning() {
-        if (this.muted || !this.started) return;
-        // Clone for overlapping plays
-        const sfx = this.warnAudio.cloneNode();
-        sfx.volume = this.warnAudio.volume;
+    // ── One-shot SFX helpers ──
+    _playOneShot(audio) {
+        if (this.muted) return;
+        const sfx = audio.cloneNode();
+        sfx.volume = audio.volume;
         const p = sfx.play();
         if (p && p.catch) p.catch(() => {});
     },
 
+    playWarning() {
+        if (!this.started) return;
+        this._playOneShot(this.warnAudio);
+    },
+
     playConfirm() {
-        if (this.muted || !this.started) return;
-        const sfx = this.confirmAudio.cloneNode();
-        sfx.volume = this.confirmAudio.volume;
-        const p = sfx.play();
+        if (!this.started) return;
+        this._playOneShot(this.confirmAudio);
+    },
+
+    // Danger: plays when a resource goes critical, with 4s cooldown
+    playDanger() {
+        if (!this.started || this.muted) return;
+        const now = performance.now();
+        if (now - this._dangerCooldown < 4000) return;
+        this._dangerCooldown = now;
+        this._playOneShot(this.dangerAudio);
+    },
+
+    // Ending: plays on death, stops the loop
+    playEnding() {
+        this.loopAudio.pause();
+        this.stopLoading();
+        if (this.muted) return;
+        const p = this.endingAudio.play();
         if (p && p.catch) p.catch(() => {});
+    },
+
+    // Loading: looping sound that plays while Jed loads resources
+    startLoading() {
+        if (this._isLoadingPlaying || this.muted) return;
+        this._isLoadingPlaying = true;
+        this.loadingAudio.currentTime = 0;
+        const p = this.loadingAudio.play();
+        if (p && p.catch) p.catch(() => {});
+    },
+
+    stopLoading() {
+        if (!this._isLoadingPlaying) return;
+        this._isLoadingPlaying = false;
+        this.loadingAudio.pause();
+        this.loadingAudio.currentTime = 0;
+    },
+
+    // Warp: plays during title screen launch, before game loop starts
+    playWarp() {
+        if (this.muted || !this._userInteracted) return;
+        this._playOneShot(this.warpAudio);
     },
 
     toggleMute() {
@@ -3777,6 +4117,7 @@ const AudioManager = {
         const btn = document.getElementById('mute-btn');
         if (this.muted) {
             this.loopAudio.pause();
+            this.loadingAudio.pause();
             btn.textContent = '🔇';
             btn.classList.add('muted');
         } else {
@@ -3786,19 +4127,28 @@ const AudioManager = {
                 const p = this.loopAudio.play();
                 if (p && p.catch) p.catch(() => {});
             }
+            // Resume loading sound if we're mid-load
+            if (this._isLoadingPlaying) {
+                const p = this.loadingAudio.play();
+                if (p && p.catch) p.catch(() => {});
+            }
         }
     },
 
     _pauseAll() {
-        if (!this.started) return;
         this._wasPlayingBeforeHidden = !this.loopAudio.paused;
         this.loopAudio.pause();
+        this.loadingAudio.pause();
     },
 
     _resumeAll() {
-        if (!this.started || this.muted) return;
+        if (this.muted) return;
         if (this._wasPlayingBeforeHidden) {
             const p = this.loopAudio.play();
+            if (p && p.catch) p.catch(() => {});
+        }
+        if (this._isLoadingPlaying) {
+            const p = this.loadingAudio.play();
             if (p && p.catch) p.catch(() => {});
         }
     }
