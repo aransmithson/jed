@@ -721,21 +721,22 @@ body::before {
 /* ── Mobile adjustments ── */
 @media (max-width: 680px) {
     #planet-nav {
-        bottom: auto;
-        top: 60px;
-        left: 50%;
-        transform: translateX(-50%) translateY(-120%);
+        bottom: 64px;
+        left: 20px;
+        top: auto;
+        /* Keep the same slide-in from left */
+        transform: translateX(-110%);
         flex-direction: row;
         flex-wrap: wrap;
-        justify-content: center;
+        justify-content: flex-start;
         min-width: unset;
-        max-width: calc(100vw - 24px);
+        max-width: calc(60vw);
         padding: 8px 6px 6px;
         gap: 5px;
         max-height: 160px;
     }
     #planet-nav.visible {
-        transform: translateX(-50%) translateY(0);
+        transform: translateX(0);
         opacity: 1;
     }
     #planet-nav::before {
@@ -750,11 +751,7 @@ body::before {
         width: auto;
     }
     #planet-nav.visible .planet-nav-btn {
-        animation: nav-btn-in-mobile 0.3s ease both;
-    }
-    @keyframes nav-btn-in-mobile {
-        from { opacity: 0; transform: translateY(-8px); }
-        to   { opacity: 1; transform: translateY(0); }
+        animation: nav-btn-in 0.3s ease both;
     }
 }
 
@@ -2241,15 +2238,272 @@ class Planet {
         this.glowColor = glowColor || color;
         this.glowRGBA = hexToRgba(this.glowColor, 0.2);
         this.resource = resource;
-        this.angle = Math.random() * Math.PI * 2;
+        this.angle = 0; // overwritten after array is built
         const speedTable = {
-        "Oxygen": 0.00018,
-        "Food":   0.00009,
-        "Water":  0.00006,
-        "Fuel":   0.000035,
-        "Repair": 0.000018,
+        "Oxygen": 0.00026,   // fast inner orbit — zips around
+        "Food":   0.00008,   // leisurely mid-orbit
+        "Water":  0.000052,  // slightly slower still
+        "Fuel":   0.000019,  // slow gas giant
+        "Repair": 0.000007,  // glacially slow outermost planet
     };
     this.speed = speedTable[name] ?? (0.00005 + Math.random() * 0.00003);
+    this._texCanvas = null;
+    this._buildTex();
+    }
+
+    // ── Seeded RNG shared by all texture helpers ──────────────────
+    _rngForName() {
+        let h = 5381;
+        for (let i = 0; i < this.name.length; i++)
+            h = (((h << 5) + h) + this.name.charCodeAt(i)) | 0;
+        return () => { h ^= h << 13; h ^= h >> 17; h ^= h << 5; return (h >>> 0) / 0x100000000; };
+    }
+
+    _buildTex() {
+        const SZ = 256;
+        const oc = document.createElement('canvas');
+        oc.width = oc.height = SZ;
+        const o = oc.getContext('2d');
+        const rnd = this._rngForName();
+        const c = SZ / 2;
+
+        // clip everything to planet disc
+        o.beginPath(); o.arc(c, c, c - 1, 0, Math.PI * 2); o.clip();
+
+        if      (this.resource === 'oxygen') this._texOxygen(o, SZ, c, rnd);
+        else if (this.resource === 'food')   this._texFood(o, SZ, c, rnd);
+        else if (this.resource === 'water')  this._texWater(o, SZ, c, rnd);
+        else if (this.resource === 'fuel')   this._texFuel(o, SZ, c, rnd);
+        else if (this.resource === 'repair') this._texRepair(o, SZ, c, rnd);
+
+        this._texCanvas = oc;
+        this._texSZ = SZ;
+    }
+
+    _texOxygen(o, SZ, c, rnd) {
+        // Ice-blue base gradient
+        const bg = o.createRadialGradient(c * 0.75, c * 0.7, 0, c, c, c * 1.1);
+        bg.addColorStop(0, '#dff0ff'); bg.addColorStop(0.6, '#a8ccf0'); bg.addColorStop(1, '#5888cc');
+        o.fillStyle = bg; o.fillRect(0, 0, SZ, SZ);
+
+        // Ice sheet variation — overlapping bright/dark patches
+        for (let i = 0; i < 14; i++) {
+            const px = rnd() * SZ, py = rnd() * SZ, r = SZ * (0.06 + rnd() * 0.2);
+            const bright = rnd() > 0.45;
+            const g = o.createRadialGradient(px, py, 0, px, py, r);
+            g.addColorStop(0, bright ? 'rgba(255,255,255,0.65)' : 'rgba(100,155,215,0.5)');
+            g.addColorStop(1, 'rgba(0,0,0,0)');
+            o.fillStyle = g; o.beginPath(); o.arc(px, py, r, 0, Math.PI * 2); o.fill();
+        }
+
+        // Crack network (fault lines through ice)
+        o.strokeStyle = '#3a78cc'; o.lineCap = 'round';
+        let cx = rnd() * SZ, cy = rnd() * SZ;
+        for (let i = 0; i < 28; i++) {
+            const nx = cx + (rnd() - 0.5) * SZ * 0.38, ny = cy + (rnd() - 0.5) * SZ * 0.38;
+            o.globalAlpha = 0.25 + rnd() * 0.45;
+            o.lineWidth = 0.8 + rnd() * 1.8;
+            o.beginPath(); o.moveTo(cx, cy); o.lineTo(nx, ny); o.stroke();
+            if (rnd() > 0.38) { cx = nx; cy = ny; } else { cx = rnd() * SZ; cy = rnd() * SZ; }
+        }
+
+        // North polar cap
+        const nc = o.createRadialGradient(c, -SZ * 0.06, 0, c, -SZ * 0.06, SZ * 0.58);
+        nc.addColorStop(0, 'rgba(255,255,255,1)'); nc.addColorStop(0.5, 'rgba(240,250,255,0.88)');
+        nc.addColorStop(0.78, 'rgba(215,238,255,0.4)'); nc.addColorStop(1, 'rgba(0,0,0,0)');
+        o.globalAlpha = 1; o.fillStyle = nc; o.beginPath(); o.arc(c, -SZ*0.06, SZ*0.58, 0, Math.PI*2); o.fill();
+
+        // South polar cap (smaller)
+        const sc = o.createRadialGradient(c, SZ * 1.06, 0, c, SZ * 1.06, SZ * 0.42);
+        sc.addColorStop(0, 'rgba(255,255,255,0.95)'); sc.addColorStop(0.55, 'rgba(225,245,255,0.6)');
+        sc.addColorStop(1, 'rgba(0,0,0,0)');
+        o.fillStyle = sc; o.beginPath(); o.arc(c, SZ*1.06, SZ*0.42, 0, Math.PI*2); o.fill();
+        o.globalAlpha = 1;
+    }
+
+    _texFood(o, SZ, c, rnd) {
+        // Ocean base
+        const bg = o.createRadialGradient(c*0.78, c*0.72, 0, c, c, c * 1.1);
+        bg.addColorStop(0, '#2470a8'); bg.addColorStop(1, '#0c2a58');
+        o.fillStyle = bg; o.fillRect(0, 0, SZ, SZ);
+
+        // Continents — overlapping organic blobs (dark + mid + light green layers)
+        const greens = ['#1e5228','#2d7038','#3d8e4a','#50a860','#6abf70'];
+        for (let i = 0; i < 18; i++) {
+            const px = rnd() * SZ, py = rnd() * SZ, r = SZ * (0.09 + rnd() * 0.24);
+            const col = greens[Math.floor(rnd() * greens.length)];
+            const g = o.createRadialGradient(px * 0.92, py * 0.92, 0, px, py, r);
+            g.addColorStop(0, col); g.addColorStop(0.72, col); g.addColorStop(1, 'rgba(0,0,0,0)');
+            o.globalAlpha = 0.82; o.fillStyle = g;
+            o.beginPath(); o.arc(px, py, r, 0, Math.PI * 2); o.fill();
+        }
+
+        // Desert / highland accent (warm tan on some continents)
+        for (let i = 0; i < 5; i++) {
+            const px = rnd() * SZ, py = rnd() * SZ, r = SZ * (0.04 + rnd() * 0.09);
+            const g = o.createRadialGradient(px, py, 0, px, py, r);
+            g.addColorStop(0, 'rgba(195,158,80,0.7)'); g.addColorStop(1, 'rgba(0,0,0,0)');
+            o.globalAlpha = 0.6; o.fillStyle = g;
+            o.beginPath(); o.arc(px, py, r, 0, Math.PI * 2); o.fill();
+        }
+
+        // Cloud wisps
+        for (let i = 0; i < 12; i++) {
+            const px = rnd() * SZ, py = rnd() * SZ;
+            const rx = SZ * (0.06 + rnd() * 0.22), ry = SZ * (0.025 + rnd() * 0.065);
+            const angle = rnd() * Math.PI;
+            o.globalAlpha = 0.22 + rnd() * 0.28; o.fillStyle = 'rgba(245,250,255,1)';
+            o.beginPath(); o.ellipse(px, py, rx, ry, angle, 0, Math.PI * 2); o.fill();
+        }
+        o.globalAlpha = 1;
+    }
+
+    _texWater(o, SZ, c, rnd) {
+        // Deep ocean base
+        const bg = o.createRadialGradient(c*0.8, c*0.75, 0, c, c, c * 1.1);
+        bg.addColorStop(0, '#1a4898'); bg.addColorStop(1, '#040e2c');
+        o.fillStyle = bg; o.fillRect(0, 0, SZ, SZ);
+
+        // Deep trenches and current swirls
+        for (let i = 0; i < 14; i++) {
+            const px = rnd() * SZ, py = rnd() * SZ;
+            const rx = SZ * (0.07 + rnd() * 0.26), ry = SZ * (0.025 + rnd() * 0.12);
+            const angle = rnd() * Math.PI;
+            const dark = rnd() > 0.45;
+            const g = o.createRadialGradient(px, py, 0, px, py, Math.max(rx, ry));
+            g.addColorStop(0, dark ? 'rgba(4,14,44,0.7)' : 'rgba(50,120,220,0.55)');
+            g.addColorStop(1, 'rgba(0,0,0,0)');
+            o.globalAlpha = 0.7; o.fillStyle = g;
+            o.beginPath(); o.ellipse(px, py, rx, ry, angle, 0, Math.PI*2); o.fill();
+        }
+
+        // Polar ice caps
+        const nc = o.createRadialGradient(c, -SZ*0.08, 0, c, -SZ*0.08, SZ*0.55);
+        nc.addColorStop(0, 'rgba(235,248,255,0.98)'); nc.addColorStop(0.48, 'rgba(210,238,255,0.72)');
+        nc.addColorStop(0.75, 'rgba(185,225,255,0.18)'); nc.addColorStop(1, 'rgba(0,0,0,0)');
+        o.globalAlpha = 1; o.fillStyle = nc; o.beginPath(); o.arc(c, -SZ*0.08, SZ*0.55, 0, Math.PI*2); o.fill();
+
+        const sc = o.createRadialGradient(c, SZ*1.08, 0, c, SZ*1.08, SZ*0.44);
+        sc.addColorStop(0, 'rgba(235,248,255,0.92)'); sc.addColorStop(0.55, 'rgba(205,235,255,0.55)');
+        sc.addColorStop(1, 'rgba(0,0,0,0)');
+        o.fillStyle = sc; o.beginPath(); o.arc(c, SZ*1.08, SZ*0.44, 0, Math.PI*2); o.fill();
+        o.globalAlpha = 1;
+    }
+
+    _texFuel(o, SZ, c, rnd) {
+        // Jupiter-style gas giant with horizontal turbulent bands
+        const bands = [
+            '#e8c070','#d08848','#be6e2e','#dca050',
+            '#f0d898','#b86828','#e09858','#c87838'
+        ];
+        // Phase offsets per frequency to vary the turbulence per planet
+        const phases = [rnd()*6.28, rnd()*6.28, rnd()*6.28, rnd()*6.28];
+
+        // Draw band-by-band, one pixel row at a time for the wavy effect
+        const imgData = o.getImageData(0, 0, SZ, SZ);
+        const d = imgData.data;
+        for (let y = 0; y < SZ; y++) {
+            let t = y / SZ;
+            // Multi-frequency turbulence (different scales of waviness)
+            const noise = Math.sin(t * 20   + phases[0]) * 0.028
+                        + Math.sin(t * 8.5  + phases[1]) * 0.048
+                        + Math.sin(t * 38   + phases[2]) * 0.012
+                        + Math.sin(t * 55   + phases[3]) * 0.006;
+            t = ((t + noise) % 1 + 1) % 1;
+            const bi = Math.floor(t * bands.length) % bands.length;
+            // Parse band hex to RGB
+            const m = bands[bi].match(/[\da-f]{2}/gi);
+            const br = parseInt(m[0],16), bg2 = parseInt(m[1],16), bb = parseInt(m[2],16);
+            for (let x = 0; x < SZ; x++) {
+                const idx = (y * SZ + x) * 4;
+                d[idx] = br; d[idx+1] = bg2; d[idx+2] = bb; d[idx+3] = 255;
+            }
+        }
+        o.putImageData(imgData, 0, 0);
+
+        // Great storm oval (Red Spot equivalent)
+        const sx = c * (0.55 + rnd() * 0.9), sy = SZ * (0.38 + rnd() * 0.24);
+        const stG = o.createRadialGradient(sx*0.96, sy*0.96, 0, sx, sy, SZ*0.14);
+        stG.addColorStop(0, 'rgba(240,210,140,0.95)');
+        stG.addColorStop(0.42, 'rgba(218,128,48,0.75)');
+        stG.addColorStop(1, 'rgba(180,70,15,0)');
+        o.fillStyle = stG;
+        o.beginPath(); o.ellipse(sx, sy, SZ*0.155, SZ*0.072, 0, 0, Math.PI*2); o.fill();
+
+        // Smaller storm ovals
+        for (let i = 0; i < 3; i++) {
+            const ssX = rnd() * SZ, ssY = rnd() * SZ;
+            const ssG = o.createRadialGradient(ssX, ssY, 0, ssX, ssY, SZ*0.055);
+            ssG.addColorStop(0, 'rgba(255,220,140,0.7)'); ssG.addColorStop(1, 'rgba(0,0,0,0)');
+            o.globalAlpha = 0.55; o.fillStyle = ssG;
+            o.beginPath(); o.ellipse(ssX, ssY, SZ*0.065, SZ*0.028, 0, 0, Math.PI*2); o.fill();
+        }
+        o.globalAlpha = 1;
+    }
+
+    _texRepair(o, SZ, c, rnd) {
+        // Rocky/barren moon-like surface with purple-grey tones
+        const bg = o.createRadialGradient(c*0.75, c*0.7, 0, c, c, c * 1.1);
+        bg.addColorStop(0, '#9e8eb8'); bg.addColorStop(0.65, '#7a6890'); bg.addColorStop(1, '#3e2e55');
+        o.fillStyle = bg; o.fillRect(0, 0, SZ, SZ);
+
+        // Surface terrain variation — highland and lowland patches
+        for (let i = 0; i < 16; i++) {
+            const px = rnd() * SZ, py = rnd() * SZ, r = SZ * (0.05 + rnd() * 0.2);
+            const hl = rnd() > 0.5;
+            const g = o.createRadialGradient(px, py, 0, px, py, r);
+            g.addColorStop(0, hl ? 'rgba(175,162,200,0.55)' : 'rgba(42,30,62,0.6)');
+            g.addColorStop(1, 'rgba(0,0,0,0)');
+            o.fillStyle = g; o.beginPath(); o.arc(px, py, r, 0, Math.PI*2); o.fill();
+        }
+
+        // Craters with ejecta blanket + bowl shadow + rim highlight
+        for (let i = 0; i < 14; i++) {
+            const px = SZ * (0.08 + rnd() * 0.84), py = SZ * (0.08 + rnd() * 0.84);
+            const r = SZ * (0.025 + rnd() * 0.09);
+
+            // Ejecta (lighter halo outside crater)
+            const ej = o.createRadialGradient(px, py, r * 0.7, px, py, r * 2.0);
+            ej.addColorStop(0, 'rgba(185,172,210,0.38)'); ej.addColorStop(1, 'rgba(0,0,0,0)');
+            o.fillStyle = ej; o.beginPath(); o.arc(px, py, r * 2.0, 0, Math.PI*2); o.fill();
+
+            // Bowl (dark gradient, offset for 3-D shadow from upper-left light)
+            const bowl = o.createRadialGradient(px*0.97, py*0.97, 0, px, py, r);
+            bowl.addColorStop(0, 'rgba(25,15,42,0.9)');
+            bowl.addColorStop(0.6, 'rgba(40,28,58,0.65)');
+            bowl.addColorStop(1, 'rgba(0,0,0,0)');
+            o.fillStyle = bowl; o.beginPath(); o.arc(px, py, r, 0, Math.PI*2); o.fill();
+
+            // Rim highlight (south/right arc only — facing light)
+            o.strokeStyle = 'rgba(215,202,235,0.55)';
+            o.lineWidth = Math.max(0.6, r * 0.14);
+            o.beginPath(); o.arc(px, py, r * 0.88, Math.PI * 0.15, Math.PI * 0.85); o.stroke();
+        }
+
+        // Impact scars / fault lines
+        o.lineCap = 'round'; o.strokeStyle = 'rgba(35,22,52,0.55)';
+        for (let i = 0; i < 4; i++) {
+            o.lineWidth = 1 + rnd() * 2.5; o.globalAlpha = 0.45 + rnd() * 0.3;
+            o.beginPath();
+            o.moveTo(rnd() * SZ, rnd() * SZ); o.lineTo(rnd() * SZ, rnd() * SZ);
+            o.stroke();
+        }
+        o.globalAlpha = 1;
+    }
+
+    drawTexture(px, py, t) {
+        if (!this._texCanvas) return;
+        ctx.save();
+        // Clip strictly to planet disc
+        ctx.beginPath(); ctx.arc(px, py, this.size - 0.5, 0, Math.PI * 2); ctx.clip();
+        ctx.translate(px, py);
+        // Slow surface rotation — different rate per type
+        const rotRates = { oxygen:0.28, food:0.16, water:0.20, fuel:0.07, repair:0.10 };
+        ctx.rotate(this.angle * (rotRates[this.resource] || 0.12));
+        const s = (this.size * 2) / this._texSZ;
+        ctx.scale(s, s);
+        ctx.drawImage(this._texCanvas, -this._texSZ / 2, -this._texSZ / 2);
+        ctx.restore();
     }
 
     orbitRadius(){
@@ -2286,14 +2540,33 @@ class Planet {
         ctx.fillStyle = grad;
         ctx.fill();
 
-        // Planet body
+        // Planet body base gradient
         const bg = ctx.createRadialGradient(p.x - this.size*0.3, p.y - this.size*0.3, this.size*0.1, p.x, p.y, this.size);
         bg.addColorStop(0, lighten(this.color, 0.4));
         bg.addColorStop(1, darken(this.color, 0.4));
         ctx.fillStyle = bg;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, this.size, 0, Math.PI*2);
-        ctx.fill();
+        ctx.beginPath(); ctx.arc(p.x, p.y, this.size, 0, Math.PI*2); ctx.fill();
+
+        // Surface texture (rendered to offscreen canvas, drawImage'd in)
+        this.drawTexture(p.x, p.y, t);
+
+        // Specular highlight — gives the sphere its round feel
+        const spec = ctx.createRadialGradient(
+            p.x - this.size * 0.34, p.y - this.size * 0.34, 0,
+            p.x, p.y, this.size
+        );
+        spec.addColorStop(0,    'rgba(255,255,255,0.20)');
+        spec.addColorStop(0.35, 'rgba(255,255,255,0.05)');
+        spec.addColorStop(1,    'rgba(0,0,0,0)');
+        ctx.fillStyle = spec;
+        ctx.beginPath(); ctx.arc(p.x, p.y, this.size, 0, Math.PI*2); ctx.fill();
+
+        // Limb darkening — edges go dark to reinforce sphere depth
+        const limb = ctx.createRadialGradient(p.x, p.y, this.size * 0.55, p.x, p.y, this.size);
+        limb.addColorStop(0, 'rgba(0,0,0,0)');
+        limb.addColorStop(1, 'rgba(0,0,0,0.42)');
+        ctx.fillStyle = limb;
+        ctx.beginPath(); ctx.arc(p.x, p.y, this.size, 0, Math.PI*2); ctx.fill();
 
         // Planet rings (for outer resource planets)
         if(this.resource === "fuel" || this.resource === "repair"){
@@ -2387,12 +2660,26 @@ class Planet {
 }
 
 const planets = [
-    new Planet("Oxygen", 0.22, 14, "#00aaff", "oxygen", "#00aaff"),
-    new Planet("Food",   0.40, 15, "#44cc66", "food",   "#44cc66"),
-    new Planet("Water",  0.58, 13, "#2255dd", "water",  "#2255dd"),
-    new Planet("Fuel",   0.76, 17, "#dd8800", "fuel",   "#dd8800"),
-    new Planet("Repair", 0.96, 16, "#aa44ff", "repair", "#aa44ff"),
+    new Planet("Oxygen", 0.22, 13, "#00aaff", "oxygen", "#00aaff"),
+    new Planet("Food",   0.40, 22, "#44cc66", "food",   "#44cc66"),
+    new Planet("Water",  0.58, 14, "#2255dd", "water",  "#2255dd"),
+    new Planet("Fuel",   0.76, 26, "#dd8800", "fuel",   "#dd8800"),
+    new Planet("Repair", 0.96, 17, "#aa44ff", "repair", "#aa44ff"),
 ];
+
+// Spread planets evenly around the system so they never clump on init.
+// A random global offset rotates the whole formation each game, and a
+// small per-planet jitter (±18°) keeps it from looking too mechanical.
+(function spreadPlanets(){
+    const n = planets.length;
+    const globalOffset = Math.random() * Math.PI * 2;
+    const jitterRange  = Math.PI / 10; // ±18°
+    for(let i = 0; i < n; i++){
+        const base   = (i / n) * Math.PI * 2 + globalOffset;
+        const jitter = (Math.random() - 0.5) * 2 * jitterRange;
+        planets[i].angle = base + jitter;
+    }
+})();
 
 // Build planet nav buttons
 const _navBtnMap = new Map(); // planet → button element
