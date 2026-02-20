@@ -561,6 +561,46 @@ body::before {
     #hud-meta .status-row:last-child { display: none; }
 }
 
+/* ── Mute button ── */
+#mute-btn {
+    position: fixed;
+    top: 12px;
+    right: 16px;
+    z-index: 600;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 16px;
+    background: rgba(0,10,25,0.85);
+    border: 1px solid rgba(0,170,255,0.3);
+    color: #0af;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    pointer-events: auto;
+    line-height: 1;
+}
+#mute-btn:hover {
+    background: rgba(0,170,255,0.15);
+    border-color: #0af;
+    box-shadow: 0 0 10px rgba(0,170,255,0.25);
+}
+#mute-btn.muted {
+    color: #ff4466;
+    border-color: rgba(255,68,102,0.4);
+}
+#mute-btn.muted:hover {
+    background: rgba(255,68,102,0.1);
+    border-color: #ff4466;
+    box-shadow: 0 0 10px rgba(255,68,102,0.2);
+}
+/* Push mute button below HUD on mobile */
+@media (max-width: 680px) {
+    #mute-btn { top: auto; bottom: 20px; right: 60px; }
+}
+
 /* ── Game over ── */
 #gameover {
     display:none;
@@ -812,6 +852,7 @@ body::before {
 </head>
 <body>
 <canvas id="sim"></canvas>
+<button id="mute-btn" style="display:none;" title="Toggle Sound">🔊</button>
 
 <!-- ══════════════════════════════════════
      START SCREEN
@@ -1426,6 +1467,7 @@ function finishLaunch(){
     document.getElementById('follow-btn').style.display = '';
 
     // Start the game loop
+    AudioManager.startLoop();
     requestAnimationFrame(loop);
 }
 
@@ -1623,6 +1665,7 @@ function setPlayerTarget(planet){
 
     showNotif(`◈ COURSE SET: ${planet.name.toUpperCase()}`, '#0af');
     dbg(`▶ PLAYER: GO TO ${planet.name.toUpperCase()}`, 'good');
+    AudioManager.playConfirm();
 
     // Hide tap hint once player has used it
     const hint = document.getElementById('tap-hint');
@@ -3420,6 +3463,7 @@ function updateEvents(dt){
     showNotif(ev.name, ev.color, 'event-major');
     setTimeout(() => showNotif(ev.desc, ev.good ? '#44ffaa' : '#ff6644'), 600);
     triggerScreenFlash(ev.flashColor, ev.good ? 0.12 : 0.28);
+    AudioManager.playWarning();
     dbg('EVENT: ' + ev.name + ' — ' + ev.desc, ev.good ? 'good' : 'crit');
 
     eventTimer = EVENT_INTERVAL_MIN + Math.random() * (EVENT_INTERVAL_MAX - EVENT_INTERVAL_MIN);
@@ -3520,6 +3564,8 @@ const RESOURCE_NAMES = { oxygen:'OXYGEN', water:'WATER', food:'FOOD', fuel:'FUEL
 
 function triggerGameOver(resource){
     gameOver = true;
+    AudioManager.loopAudio.pause();
+    AudioManager.playWarning();
     document.getElementById('gameover-reason').textContent =
         RESOURCE_NAMES[resource] + ' DEPLETED — CREW LOST';
     const scoreEl = document.getElementById('gameover-score');
@@ -3643,6 +3689,123 @@ function startBgLoop(t){
     drawStars(t);
     requestAnimationFrame(startBgLoop);
 }
+// =============================
+// AUDIO SYSTEM
+// =============================
+const AudioManager = {
+    muted: false,
+    started: false,
+    loopAudio: null,
+    warnAudio: null,
+    confirmAudio: null,
+    _wasPlayingBeforeHidden: false,
+
+    init() {
+        // Create audio elements
+        this.loopAudio = new Audio('loop.mp3');
+        this.loopAudio.loop = true;
+        this.loopAudio.volume = 0.4;
+        // Preload one-shots
+        this.warnAudio = new Audio('warning.mp3');
+        this.warnAudio.volume = 0.6;
+        this.confirmAudio = new Audio('confirm.mp3');
+        this.confirmAudio.volume = 0.5;
+
+        // ── Visibility change: pause/resume when tab hidden ──
+        // Works on PC (all browsers), Android Chrome, iOS Safari
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                this._pauseAll();
+            } else {
+                this._resumeAll();
+            }
+        });
+
+        // Extra insurance for iOS — blur/focus on window
+        window.addEventListener('blur', () => this._pauseAll());
+        window.addEventListener('focus', () => this._resumeAll());
+
+        // iOS Safari: pageshow/pagehide for app switching & tab switching
+        window.addEventListener('pagehide', () => this._pauseAll());
+        window.addEventListener('pageshow', () => this._resumeAll());
+
+        // Mute button wiring
+        const muteBtn = document.getElementById('mute-btn');
+        muteBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.toggleMute();
+        });
+        // Also handle touch to avoid double-fire on mobile
+        muteBtn.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            this.toggleMute();
+        });
+    },
+
+    startLoop() {
+        if (this.started) return;
+        this.started = true;
+        document.getElementById('mute-btn').style.display = 'flex';
+        if (!this.muted) {
+            // Many browsers require a user gesture before playing audio.
+            // startGame() is triggered by a button click, so we're good.
+            const p = this.loopAudio.play();
+            if (p && p.catch) p.catch(() => {});
+        }
+    },
+
+    playWarning() {
+        if (this.muted || !this.started) return;
+        // Clone for overlapping plays
+        const sfx = this.warnAudio.cloneNode();
+        sfx.volume = this.warnAudio.volume;
+        const p = sfx.play();
+        if (p && p.catch) p.catch(() => {});
+    },
+
+    playConfirm() {
+        if (this.muted || !this.started) return;
+        const sfx = this.confirmAudio.cloneNode();
+        sfx.volume = this.confirmAudio.volume;
+        const p = sfx.play();
+        if (p && p.catch) p.catch(() => {});
+    },
+
+    toggleMute() {
+        this.muted = !this.muted;
+        const btn = document.getElementById('mute-btn');
+        if (this.muted) {
+            this.loopAudio.pause();
+            btn.textContent = '🔇';
+            btn.classList.add('muted');
+        } else {
+            btn.textContent = '🔊';
+            btn.classList.remove('muted');
+            if (this.started && !document.hidden) {
+                const p = this.loopAudio.play();
+                if (p && p.catch) p.catch(() => {});
+            }
+        }
+    },
+
+    _pauseAll() {
+        if (!this.started) return;
+        this._wasPlayingBeforeHidden = !this.loopAudio.paused;
+        this.loopAudio.pause();
+    },
+
+    _resumeAll() {
+        if (!this.started || this.muted) return;
+        if (this._wasPlayingBeforeHidden) {
+            const p = this.loopAudio.play();
+            if (p && p.catch) p.catch(() => {});
+        }
+    }
+};
+
+AudioManager.init();
+
 requestAnimationFrame(startBgLoop);
 </script>
 </body>
