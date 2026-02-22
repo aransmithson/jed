@@ -2264,6 +2264,166 @@ followBtn.addEventListener("click", () => {
 // =============================
 let stars = [];
 let nebulaPoints = [];
+let nebulaCanvas = null; // pre-rendered offscreen nebula
+
+function buildNebula(){
+    const W = canvas.width, H = canvas.height;
+    nebulaCanvas = document.createElement('canvas');
+    nebulaCanvas.width  = W;
+    nebulaCanvas.height = H;
+    const nc = nebulaCanvas.getContext('2d');
+
+    // Diagonal band runs from top-left to bottom-right
+    // Band centre line: y = x * bandSlope + bandOffset
+    const bandAngle = 0.52; // ~30 degrees
+    const bandCos = Math.cos(bandAngle);
+    const bandSin = Math.sin(bandAngle);
+
+    // Helper: distance from point to the band centre line (signed, perpendicular)
+    // Band centre passes through the middle of the canvas
+    const midX = W * 0.5, midY = H * 0.42;
+
+    function distToBand(x, y){
+        // Perpendicular distance to line through (midX,midY) at bandAngle
+        return -(x - midX) * bandSin + (y - midY) * bandCos;
+    }
+
+    // 1. Core band — two wide overlapping ellipses stretched along the diagonal
+    const bandPalette = [
+        { r:15,  g:25,  b:110 }, // deep indigo
+        { r:55,  g:0,   b:100 }, // purple
+        { r:0,   g:55,  b:95  }, // teal-blue
+        { r:80,  g:15,  b:40  }, // crimson
+        { r:20,  g:0,   b:80  }, // violet
+    ];
+
+    // Large elongated lobes sitting on the band
+    const bandLen = Math.hypot(W, H);
+    const lobeData = [
+        { t: 0.18, perp:  0.01, rx: bandLen*0.28, ry: H*0.22, pal:0, a:0.30 },
+        { t: 0.38, perp: -0.03, rx: bandLen*0.22, ry: H*0.19, pal:1, a:0.28 },
+        { t: 0.55, perp:  0.02, rx: bandLen*0.26, ry: H*0.24, pal:2, a:0.26 },
+        { t: 0.72, perp: -0.01, rx: bandLen*0.20, ry: H*0.18, pal:0, a:0.24 },
+        { t: 0.88, perp:  0.03, rx: bandLen*0.18, ry: H*0.16, pal:3, a:0.22 },
+        { t: 0.10, perp: -0.02, rx: bandLen*0.16, ry: H*0.14, pal:4, a:0.20 },
+    ];
+
+    for(const l of lobeData){
+        const p = bandPalette[l.pal];
+        // Position along the band diagonal
+        const cx = midX + (l.t - 0.5) * bandLen * bandCos + l.perp * H * (-bandSin);
+        const cy = midY + (l.t - 0.5) * bandLen * bandSin + l.perp * H * bandCos;
+
+        nc.save();
+        nc.translate(cx, cy);
+        nc.rotate(bandAngle);
+        nc.scale(l.rx / l.ry, 1); // stretch along band axis
+        const g = nc.createRadialGradient(0, 0, 0, 0, 0, l.ry);
+        g.addColorStop(0,    `rgba(${p.r},${p.g},${p.b},${l.a})`);
+        g.addColorStop(0.35, `rgba(${p.r},${p.g},${p.b},${l.a * 0.6})`);
+        g.addColorStop(0.7,  `rgba(${p.r},${p.g},${p.b},${l.a * 0.2})`);
+        g.addColorStop(1,    `rgba(0,0,0,0)`);
+        nc.fillStyle = g;
+        nc.beginPath();
+        nc.arc(0, 0, l.ry, 0, Math.PI * 2);
+        nc.fill();
+        nc.restore();
+    }
+
+    // 2. Medium puff clusters — kept near the band (low perp distance)
+    const rng = (a, b) => a + Math.random() * (b - a);
+    for(let i = 0; i < 28; i++){
+        const t   = rng(0, 1);
+        const perp = rng(-0.18, 0.18); // tight to band
+        const cx = midX + (t - 0.5) * bandLen * bandCos + perp * H * (-bandSin);
+        const cy = midY + (t - 0.5) * bandLen * bandSin + perp * H * bandCos;
+        const p  = bandPalette[i % bandPalette.length];
+        const r  = rng(W * 0.05, W * 0.14);
+        const a  = rng(0.10, 0.22);
+
+        nc.save();
+        nc.translate(cx, cy);
+        nc.rotate(bandAngle + rng(-0.4, 0.4));
+        nc.scale(rng(1.4, 2.8), 1); // elongate along band
+        const g = nc.createRadialGradient(0, 0, 0, 0, 0, r);
+        g.addColorStop(0,   `rgba(${p.r},${p.g},${p.b},${a})`);
+        g.addColorStop(0.55,`rgba(${p.r},${p.g},${p.b},${a * 0.35})`);
+        g.addColorStop(1,   `rgba(0,0,0,0)`);
+        nc.fillStyle = g;
+        nc.beginPath();
+        nc.arc(0, 0, r, 0, Math.PI * 2);
+        nc.fill();
+        nc.restore();
+    }
+
+    // 3. Bright filament wisps along the band spine
+    for(let i = 0; i < 12; i++){
+        const t   = rng(0.05, 0.95);
+        const perp = rng(-0.08, 0.08);
+        const cx = midX + (t - 0.5) * bandLen * bandCos + perp * H * (-bandSin);
+        const cy = midY + (t - 0.5) * bandLen * bandSin + perp * H * bandCos;
+        const p  = bandPalette[(i + 1) % bandPalette.length];
+        const len = rng(W * 0.12, W * 0.32);
+        const ht  = rng(H * 0.012, H * 0.038);
+        const a   = rng(0.12, 0.28);
+        const br  = Math.min(255, p.r + 70);
+        const bg  = Math.min(255, p.g + 70);
+        const bb  = Math.min(255, p.b + 70);
+
+        nc.save();
+        nc.translate(cx, cy);
+        nc.rotate(bandAngle + rng(-0.15, 0.15));
+        nc.scale(len / (ht * 3), 1);
+        const g = nc.createRadialGradient(0, 0, 0, 0, 0, ht * 3);
+        g.addColorStop(0,   `rgba(${br},${bg},${bb},${a})`);
+        g.addColorStop(0.4, `rgba(${p.r},${p.g},${p.b},${a * 0.5})`);
+        g.addColorStop(1,   `rgba(0,0,0,0)`);
+        nc.fillStyle = g;
+        nc.beginPath();
+        nc.arc(0, 0, ht * 3, 0, Math.PI * 2);
+        nc.fill();
+        nc.restore();
+    }
+
+    // 4. Bright knots / stellar nurseries dotted along the band
+    for(let i = 0; i < 18; i++){
+        const t   = rng(0.05, 0.95);
+        const perp = rng(-0.12, 0.12);
+        const cx = midX + (t - 0.5) * bandLen * bandCos + perp * H * (-bandSin);
+        const cy = midY + (t - 0.5) * bandLen * bandSin + perp * H * bandCos;
+        const p  = bandPalette[i % bandPalette.length];
+        const r  = rng(W * 0.008, W * 0.03);
+        const a  = rng(0.25, 0.50);
+        const br = Math.min(255, p.r + 120);
+        const bg = Math.min(255, p.g + 100);
+        const bb = Math.min(255, p.b + 120);
+
+        const g = nc.createRadialGradient(cx, cy, 0, cx, cy, r);
+        g.addColorStop(0,   `rgba(${br},${bg},${bb},${a})`);
+        g.addColorStop(0.3, `rgba(${p.r},${p.g},${p.b},${a * 0.6})`);
+        g.addColorStop(1,   `rgba(0,0,0,0)`);
+        nc.fillStyle = g;
+        nc.beginPath();
+        nc.arc(cx, cy, r, 0, Math.PI * 2);
+        nc.fill();
+    }
+
+    // 5. Soft overall band glow — one very wide very faint ellipse tying it together
+    nc.save();
+    nc.translate(midX, midY);
+    nc.rotate(bandAngle);
+    nc.scale(bandLen / (H * 0.35), 1);
+    const gBand = nc.createRadialGradient(0, 0, 0, 0, 0, H * 0.35);
+    gBand.addColorStop(0,   'rgba(30,20,80,0.18)');
+    gBand.addColorStop(0.5, 'rgba(20,10,60,0.10)');
+    gBand.addColorStop(1,   'rgba(0,0,0,0)');
+    nc.fillStyle = gBand;
+    nc.beginPath();
+    nc.arc(0, 0, H * 0.35, 0, Math.PI * 2);
+    nc.fill();
+    nc.restore();
+}
+
 function buildStars(){
     stars = [];
     // Colored star types: blue giants, red dwarfs, warm yellows, standard white
@@ -2290,32 +2450,12 @@ function buildStars(){
             bright
         });
     }
-    // Nebula points (static colorful cloud blobs)
-    nebulaPoints = [];
-    const nebColors = [
-        [20,40,100], [40,0,80], [0,60,80], [80,20,20], [0,80,60]
-    ];
-    for(let i = 0; i < 8; i++){
-        const nc = nebColors[i % nebColors.length];
-        nebulaPoints.push({
-            x: Math.random() * canvas.width,
-            y: Math.random() * canvas.height,
-            r: 80 + Math.random() * 200,
-            cr: nc[0], cg: nc[1], cb: nc[2],
-            a: 0.04 + Math.random() * 0.06
-        });
-    }
+    buildNebula();
 }
 function drawNebula(){
-    for(let n of nebulaPoints){
-        const g = ctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, n.r);
-        g.addColorStop(0, `rgba(${n.cr},${n.cg},${n.cb},${n.a})`);
-        g.addColorStop(1, 'rgba(0,0,0,0)');
-        ctx.fillStyle = g;
-        ctx.beginPath();
-        ctx.arc(n.x, n.y, n.r, 0, Math.PI*2);
-        ctx.fill();
-    }
+    if(!nebulaCanvas) return;
+    ctx.globalAlpha = 1;
+    ctx.drawImage(nebulaCanvas, 0, 0);
 }
 function resize(){
     canvas.width  = window.innerWidth;
