@@ -791,4 +791,761 @@ body::before {
     clip-path: polygon(0 0, 100% 0, 100% 45%, 0 45%);
 }
 #gameover-title::after {
+    color:#0a/* ══════════════════════════════════════
+   START SCREEN
+══════════════════════════════════════ */
+#start-screen {
+    position: fixed;
+    inset: 0;
+    z-index: 500;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    pointer-events: auto;
+    transition: opacity 0.8s ease;
+}
+#start-screen.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+#start-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: clamp(36px, 8vw, 72px);
+    font-weight: 700;
+    letter-spacing: clamp(6px, 2vw, 16px);
+    color: #fff;
+    text-transform: uppercase;
+    text-align: center;
+    position: relative;
+    margin-bottom: 4px;
+    text-shadow:
+        0 0 20px rgba(0,170,255,0.8),
+        0 0 40px rgba(0,170,255,0.4),
+        0 0 80px rgba(0,170,255,0.2),
+        0 0 120px rgba(0,100,255,0.1);
+    animation: title-glow 3s ease-in-out infinite, title-float 6s ease-in-out infinite;
+}
+#start-title .highlight {
+    color: #0af;
+    text-shadow:
+        0 0 20px rgba(0,170,255,1),
+        0 0 40px rgba(0,170,255,0.6),
+        0 0 80px rgba(0,170,255,0.3);
+}
+
+@keyframes title-glow {
+    0%, 100% { filter: brightness(1); }
+    50% { filter: brightness(1.2); }
+}
+@keyframes title-float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+}
+
+
+#start-subtitle {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: clamp(9px, 1.8vw, 13px);
+    letter-spacing: clamp(4px, 1vw, 10px);
+    color: rgba(0,170,255,0.5);
+    text-transform: uppercase;
+    margin-bottom: 5px;
+    animation: subtitle-fade 2s ease-in-out infinite alternate;
+}
+@keyframes subtitle-fade {
+    from { opacity: 0.4; }
+    to { opacity: 0.8; }
+}
+
+/* Characters area — canvas drawn Jed + Rocket */
+#start-characters {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(20px, 6vw, 80px);
+    margin-bottom: 36px;
+    position: relative;
+}
+
+#start-canvas {
+    width: clamp(280px, 60vw, 500px);
+    height: clamp(180px, 30vw, 260px);
+}
+
+/* Explainer text */
+#start-explainer {
+    text-align: center;
+    max-width: 420px;
+    padding: 0 20px;
+    margin-bottom: 36px;
+}
+#start-explainer p {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: clamp(10px, 1.6vw, 13px);
+    line-height: 1.9;
+    letter-spacing: 1.5px;
+    color: rgba(165,225,255,0.7);
+    margin: 0 0 8px 0;
+}
+#start-explainer .em {
+    color: #0af;
+}
+#start-explainer .warn {
+    color: #ff6644;
+}
+
+/* Launch button */
+#start-btn {
+    font-family: 'Orbitron', sans-serif;
+    font-size: clamp(11px, 2vw, 15px);
+    letter-spacing: clamp(4px, 1vw, 8px);
+    text-transform: uppercase;
+    background: transparent;
+    border: 1.5px solid rgba(0,170,255,0.5);
+    color: #0af;
+    padding: clamp(12px, 2vw, 18px) clamp(28px, 5vw, 50px);
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    text-shadow: 0 0 12px rgba(0,170,255,0.6);
+}
+#start-btn:hover {
+    background: rgba(0,170,255,0.1);
+    border-color: #0af;
+    box-shadow:
+        0 0 20px rgba(0,170,255,0.3),
+        inset 0 0 20px rgba(0,170,255,0.05);
+    transform: scale(1.04);
+    letter-spacing: clamp(5px, 1.2vw, 10px);
+}
+#start-btn:active {
+    transform: scale(0.97);
+    background: rgba(0,170,255,0.2);
+}
+/* Sweep animation on button */
+#start-btn::before {
+    content: '';
+    position: absolute;
+    top: 0; left: -100%;
+    width: 100%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(0,170,255,0.15), transparent);
+    animation: btn-sweep 3s ease-in-out infinite;
+}
+@keyframes btn-sweep {
+    0% { left: -100%; }
+    50% { left: 100%; }
+    100% { left: 100%; }
+}
+
+/* Intro label under characters */
+#start-intro {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: clamp(9px, 1.6vw, 12px);
+    letter-spacing: 3px;
+    color: rgba(180,235,255,0.85);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    text-align: center;
+    text-shadow: 0 0 10px rgba(0,170,255,0.4);
+}
+
+/* Small version badge */
+#start-version {
+    position: fixed;
+    bottom: 14px;
+    right: 18px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 8px;
+    letter-spacing: 2px;
+    color: rgba(0,170,255,0.2);
+    z-index: 501;
+}
+
+
+/* ══════════════════════════════════════
+   HUD — horizontal top bar
+══════════════════════════════════════ */
+#hud {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 10;
+    pointer-events: none;
+}
+
+#hud-panel {
+    background: rgba(0,5,16,0.92);
+    border-bottom: 1px solid rgba(0,170,255,0.3);
+    padding: 10px 18px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    position: relative;
+}
+/* Blue glow line along the bottom */
+#hud-panel::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(0,170,255,0.7) 50%, transparent);
+}
+
+/* ── Title badge ── */
+#hud-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 9px;
+    letter-spacing: 4px;
+    color: rgb(165, 225, 255);
+    opacity: 1;
+    white-space: nowrap;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+#hud-title::before {
+    content: '◈';
+    animation: hud-blink 2s ease-in-out infinite;
+}
+@keyframes hud-blink { 0%,100%{ opacity:1; } 50%{ opacity:0.2; } }
+
+/* ── Resource bars ── */
+#hud-resources {
+    display: flex;
+    gap: 12px;
+    flex: 1;
+    min-width: 0;
+}
+
+.res-col {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.res-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: rgb(165, 225, 255);
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    text-transform: uppercase;
+}
+.res-val {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 11px;
+    color: rgb(165, 225, 255);
+    letter-spacing: 0;
+    line-height: 1;
+}
+
+.res-track {
+    width: 100%;
+    height: 7px;
+    background: rgba(0,170,255,0.07);
+    position: relative;
+    border: 1px solid rgba(0,170,255,0.15);
+    border-radius: 1px;
+}
+.res-fill {
+    height: 100%;
+    border-radius: 1px;
+    transition: width 0.4s ease;
+    position: relative;
+}
+/* Bright leading edge */
+.res-fill::after {
+    content: '';
+    position: absolute;
+    right: 0; top: 0; bottom: 0;
+    width: 2px;
+    background: rgba(255,255,255,0.85);
+    box-shadow: 0 0 5px currentColor;
+    border-radius: 1px;
+}
+/* Tick marks at 25% intervals */
+.res-track::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+        90deg,
+        transparent 0%,
+        transparent calc(25% - 1px),
+        rgba(0,170,255,0.18) calc(25% - 1px),
+        rgba(0,170,255,0.18) 25%
+    );
+    z-index: 1;
+    pointer-events: none;
+}
+
+/* ── CRITICAL state — entire column pulses red ── */
+.res-col.critical .res-label { color: #ff5555; }
+.res-col.critical .res-val   { color: #ff8888; animation: val-pulse 0.5s ease-in-out infinite alternate; }
+.res-col.critical .res-track { border-color: rgba(255,60,60,0.45); background: rgba(255,20,20,0.08); }
+.res-col.critical .res-fill  { animation: bar-pulse 0.5s ease-in-out infinite alternate; }
+
+@keyframes val-pulse {
+    from { opacity: 1; }
+    to   { opacity: 0.4; }
+}
+@keyframes bar-pulse {
+    from { filter: brightness(1.3); opacity: 1; }
+    to   { filter: brightness(0.7); opacity: 0.35; }
+}
+
+/* ── Divider ── */
+.hud-divider {
+    width: 1px;
+    height: 36px;
+    background: rgba(0,170,255,0.15);
+    flex-shrink: 0;
+}
+
+/* ── Status & missions ── */
+#hud-meta {
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    align-items: flex-end;
+}
+.status-row {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 8px;
+    letter-spacing: 2px;
+    color: rgb(165, 225, 255);;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+.status-val { color: #0af; }
+
+#missions-wrap {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-top: 2px;
+}
+#missions-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 8px;
+    letter-spacing: 2px;
+    color: #2e5a78;
+    text-transform: uppercase;
+}
+#missions-count {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 13px;
+    color: #44ff88;
+    letter-spacing: 1px;
+}
+
+/* ── Controls ── */
+#hud-controls {
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    pointer-events: auto;
+}
+#speed-controls {
+    display: none;
+    gap: 3px;
+}
+#speed-controls.visible { display: flex; }
+
+.speed-btn {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 8px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    background: rgba(0,170,255,0.05);
+    border: 1px solid rgba(0,170,255,0.2);
+    color: #4a7a9a;
+    padding: 3px 7px;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+.speed-btn:hover { background: rgba(0,170,255,0.12); color: #8af; }
+.speed-btn.active { background: rgba(0,170,255,0.18); border-color: #0af; color: #0af; box-shadow: 0 0 6px rgba(0,170,255,0.3); }
+
+#follow-btn {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    z-index: 15;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    font-weight: bold;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    background: rgba(0,10,25,0.9);
+    border: 1px solid rgba(0,170,255,0.35);
+    color: #4a7a9a;
+    padding: 8px 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+    pointer-events: auto;
+}
+#follow-btn:hover, #follow-btn.active {
+    background: rgba(0,170,255,0.15);
+    border-color: #0af;
+    color: #0af;
+    box-shadow: 0 0 10px rgba(0,170,255,0.25);
+}
+
+/* ══════════════════════════════════════
+   Notifications — just below HUD
+══════════════════════════════════════ */
+#notif-container {
+    position: fixed;
+    top: 68px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    pointer-events: none;
+    z-index: 50;
+}
+.notif {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 10px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    padding: 6px 20px;
+    border: 1px solid;
+    background: rgba(0,0,0,0.85);
+    animation: notif-in 0.2s ease-out, notif-out 0.4s ease-in 1.8s forwards;
+    white-space: nowrap;
+}
+.notif.event-major {
+    font-size: 12px;
+    letter-spacing: 4px;
+    padding: 8px 24px;
+    animation: notif-in 0.2s ease-out, notif-out 0.5s ease-in 2.8s forwards;
+}
+@keyframes notif-in {
+    from { opacity:0; transform: scaleX(0.7) translateY(-6px); }
+    to   { opacity:1; transform: scaleX(1) translateY(0); }
+}
+@keyframes notif-out {
+    from { opacity:1; }
+    to   { opacity:0; transform: translateY(-10px); }
+}
+
+/* ── Tap hint ── */
+#tap-hint {
+    position: fixed;
+    bottom: 22px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: 'Orbitron', sans-serif;
+    font-size: 10px;
+    letter-spacing: 4px;
+    color: #0af;
+    text-transform: uppercase;
+    pointer-events: none;
+    z-index: 10;
+    text-shadow: 0 0 12px rgba(0,170,255,0.8);
+    animation: tap-hint-pulse 2s ease-in-out infinite;
+    white-space: nowrap;
+}
+#tap-hint.hidden { display: none; }
+@keyframes tap-hint-pulse { 0%,100%{ opacity:0.9; } 50%{ opacity:0.3; } }
+
+/* ── Zoom hint ── */
+#zoom-hint {
+    position: fixed;
+    top: 68px;
+    right: 16px;
+    font-size: 7px;
+    letter-spacing: 2px;
+    color: #1a2a3a;
+    pointer-events: none;
+    z-index: 10;
+}
+
+/* ══════════════════════════════════════
+   MOBILE
+══════════════════════════════════════ */
+@media (max-width: 680px) {
+    /* Stack into two rows: bars on top, status on bottom */
+    #hud-panel {
+        flex-wrap: wrap;
+        padding: 8px 12px 6px;
+        gap: 8px;
+    }
+    #hud-title { order: 1; flex-basis: 100%; margin-bottom: 0; }
+    #hud-resources { order: 2; flex-basis: 100%; gap: 8px; }
+    .hud-divider { display: none; }
+    #hud-meta { order: 3; flex-direction: row; align-items: center; gap: 12px; flex: 1; }
+    #hud-controls { order: 4; flex-direction: row; }
+
+    .res-label { font-size: 8px; }
+    .res-val { font-size: 10px; }
+    .res-track { height: 6px; }
+
+    #notif-container { top: 100px; }
+    #zoom-hint { top: 100px; }
+}
+
+@media (max-width: 480px) {
+    #hud-title { display: none; }
+    #hud-panel { padding: 7px 10px 5px; gap: 6px; }
+    #hud-resources { gap: 6px; }
+    .res-label { font-size: 7px; letter-spacing: 1px; }
+    .res-val { font-size: 9px; }
+    .res-track { height: 5px; }
+    #notif-container { top: 88px; }
+    .notif { font-size: 8px; letter-spacing: 2px; padding: 4px 12px; }
+    .notif.event-major { font-size: 9px; padding: 5px 14px; }
+    #tap-hint { font-size: 8px; letter-spacing: 2px; }
+}
+
+@media (max-width: 360px) {
+    #missions-wrap { display: none; }
+    #hud-meta .status-row:last-child { display: none; }
+}
+
+/* ── Mute button ── */
+#mute-btn {
+    position: fixed;
+    bottom: 20px;
+    left: 130px;
+    z-index: 600;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 16px;
+    background: rgba(0,10,25,0.9);
+    border: 1px solid rgba(0,170,255,0.35);
+    color: #4a7a9a;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    pointer-events: auto;
+    line-height: 1;
+}
+#mute-btn:hover {
+    background: rgba(0,170,255,0.15);
+    border-color: #0af;
+    color: #0af;
+    box-shadow: 0 0 10px rgba(0,170,255,0.25);
+}
+#mute-btn.muted {
+    color: #ff4466;
+    border-color: rgba(255,68,102,0.4);
+}
+#mute-btn.muted:hover {
+    background: rgba(255,68,102,0.1);
+    border-color: #ff4466;
+    box-shadow: 0 0 10px rgba(255,68,102,0.2);
+}
+/* Push mute button on mobile */
+@media (max-width: 680px) {
+    #mute-btn { left: 130px; }
+}
+
+/* ── Planet navigation bar (follow-cam mode) ── */
+#planet-nav {
+    position: fixed;
+    bottom: 64px;
+    left: 20px;
+    z-index: 15;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    pointer-events: auto;
+    background: rgba(0,5,16,0.92);
+    border: 1px solid rgba(0,170,255,0.28);
+    padding: 10px 8px 8px;
+    min-width: 100px;
+    max-height: calc(100vh - 120px);
+    overflow-y: auto;
+    overflow-x: hidden;
+    transform: translateX(-110%);
+    transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1),
+                opacity 0.28s ease;
+    opacity: 0;
+    box-shadow: 4px 0 24px rgba(0,0,0,0.6), 0 0 16px rgba(0,170,255,0.08);
+}
+#planet-nav.visible {
+    transform: translateX(0);
+    opacity: 1;
+}
+#planet-nav::before {
+    content: 'NAV';
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 7px;
+    letter-spacing: 3px;
+    color: rgba(0,170,255,0.4);
+    text-align: center;
+    margin-bottom: 4px;
+    display: block;
+    padding-bottom: 5px;
+    border-bottom: 1px solid rgba(0,170,255,0.12);
+}
+/* Custom scrollbar */
+#planet-nav::-webkit-scrollbar { width: 3px; }
+#planet-nav::-webkit-scrollbar-track { background: transparent; }
+#planet-nav::-webkit-scrollbar-thumb { background: rgba(0,170,255,0.2); border-radius: 2px; }
+
+.planet-nav-btn {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    border: 1px solid;
+    background: rgba(0,10,25,0.7);
+    padding: 7px 10px;
+    cursor: pointer;
+    transition: background 0.15s, box-shadow 0.15s, transform 0.1s, border-color 0.2s;
+    white-space: nowrap;
+    text-align: left;
+    width: 100%;
+    position: relative;
+    overflow: hidden;
+    -webkit-tap-highlight-color: transparent;
+    min-height: 36px; /* mobile touch target */
+}
+.planet-nav-btn::before {
+    content: '▸ ';
+    opacity: 0.5;
+    font-size: 7px;
+}
+.planet-nav-btn::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.04), transparent);
+    transform: translateX(-100%);
+    transition: transform 0s;
+}
+.planet-nav-btn:hover::after,
+.planet-nav-btn:active::after {
+    transform: translateX(100%);
+    transition: transform 0.4s ease;
+}
+.planet-nav-btn:hover {
+    filter: brightness(1.5);
+    box-shadow: 0 0 10px currentColor, inset 0 0 8px rgba(255,255,255,0.04);
+    transform: translateX(2px);
+}
+.planet-nav-btn:active {
+    transform: translateX(1px) scale(0.97);
+}
+.planet-nav-btn.active-target {
+    filter: brightness(1.8);
+    box-shadow: 0 0 12px currentColor;
+}
+.planet-nav-btn.active-target::before {
+    content: '● ';
+    opacity: 1;
+    animation: nav-dot-pulse 0.8s ease-in-out infinite alternate;
+}
+@keyframes nav-dot-pulse {
+    from { opacity: 1; }
+    to   { opacity: 0.3; }
+}
+/* Stagger animation for each button when nav opens */
+.planet-nav-btn:nth-child(2) { animation-delay: 0.04s; }
+.planet-nav-btn:nth-child(3) { animation-delay: 0.08s; }
+.planet-nav-btn:nth-child(4) { animation-delay: 0.12s; }
+.planet-nav-btn:nth-child(5) { animation-delay: 0.16s; }
+.planet-nav-btn:nth-child(6) { animation-delay: 0.20s; }
+
+#planet-nav.visible .planet-nav-btn {
+    animation: nav-btn-in 0.3s ease both;
+}
+@keyframes nav-btn-in {
+    from { opacity: 0; transform: translateX(-12px); }
+    to   { opacity: 1; transform: translateX(0); }
+}
+
+/* ── Mobile adjustments ── */
+@media (max-width: 680px) {
+    #planet-nav {
+        bottom: 64px;
+        left: 20px;
+        top: auto;
+        /* Keep the same slide-in from left */
+        transform: translateX(-110%);
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: flex-start;
+        min-width: unset;
+        max-width: calc(60vw);
+        padding: 8px 6px 6px;
+        gap: 5px;
+        max-height: 160px;
+    }
+    #planet-nav.visible {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    #planet-nav::before {
+        width: 100%;
+        text-align: center;
+        margin-bottom: 2px;
+    }
+    .planet-nav-btn {
+        font-size: 8px;
+        padding: 6px 10px;
+        min-height: 34px;
+        width: auto;
+    }
+    #planet-nav.visible .planet-nav-btn {
+        animation: nav-btn-in 0.3s ease both;
+    }
+}
+
+
+/* ── Game over ── */
+#gameover {
+    display:none;
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,0.85);
+    z-index:100;
+    align-items:center;
+    justify-content:center;
+    flex-direction:column;
+    text-align:center;
+}
+#gameover.active { display:flex; }
+#gameover-title {
+    font-family:'Orbitron', sans-serif;
+    font-size:32px;
+    letter-spacing:8px;
+    color:#ff3344;
+    margin:0 0 6px 0;
+    text-transform:uppercase;
+    animation: glitch 3s infinite;
+    position:relative;
+}
+#gameover-title::before, #gameover-title::after {
+    content: attr(data-text);
+    position:absolute;
+    left:0; top:0;
+    width:100%;
+}
+#gameover-title::before {
+    color:#ff3344;
+    animation: glitch-1 3s infinite;
+    clip-path: polygon(0 0, 100% 0, 100% 45%, 0 45%);
+}
+#gameover-title::after {
     color:#0a
