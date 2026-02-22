@@ -490,7 +490,7 @@ body::before {
 /* ── Tap hint ── */
 #tap-hint {
     position: fixed;
-    bottom: 22px;
+    top: 68px;
     left: 50%;
     transform: translateX(-50%);
     font-family: 'Orbitron', sans-serif;
@@ -506,6 +506,13 @@ body::before {
 }
 #tap-hint.hidden { display: none; }
 @keyframes tap-hint-pulse { 0%,100%{ opacity:0.9; } 50%{ opacity:0.3; } }
+
+@media (max-width: 680px) {
+    #tap-hint { top: 100px; font-size: 8px; letter-spacing: 2px; }
+}
+@media (max-width: 480px) {
+    #tap-hint { top: 88px; font-size: 8px; letter-spacing: 2px; }
+}
 
 /* ── Zoom hint ── */
 #zoom-hint {
@@ -553,7 +560,6 @@ body::before {
     #notif-container { top: 88px; }
     .notif { font-size: 8px; letter-spacing: 2px; padding: 4px 12px; }
     .notif.event-major { font-size: 9px; padding: 5px 14px; }
-    #tap-hint { font-size: 8px; letter-spacing: 2px; }
 }
 
 @media (max-width: 360px) {
@@ -600,6 +606,49 @@ body::before {
 /* Push mute button on mobile */
 @media (max-width: 680px) {
     #mute-btn { left: 130px; }
+}
+
+/* ── JED (shut up) button ── */
+#jed-btn {
+    position: fixed;
+    bottom: 20px;
+    left: 172px;
+    z-index: 600;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 9px;
+    letter-spacing: 2px;
+    background: rgba(0,10,25,0.9);
+    border: 1px solid rgba(255,100,50,0.4);
+    color: #ff7744;
+    width: 36px;
+    height: 36px;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    pointer-events: auto;
+    line-height: 1;
+    text-transform: uppercase;
+    font-weight: 700;
+}
+#jed-btn:hover {
+    background: rgba(255,100,50,0.15);
+    border-color: #ff7744;
+    color: #ffaa88;
+    box-shadow: 0 0 10px rgba(255,100,50,0.3);
+}
+#jed-btn.silenced {
+    color: #ff3300;
+    border-color: rgba(255,50,0,0.5);
+    background: rgba(255,30,0,0.08);
+}
+#jed-btn.silenced:hover {
+    background: rgba(255,50,0,0.15);
+    box-shadow: 0 0 10px rgba(255,50,0,0.25);
+}
+@media (max-width: 680px) {
+    #jed-btn { left: 172px; }
 }
 
 /* ── Planet navigation bar (follow-cam mode) ── */
@@ -1148,6 +1197,7 @@ body::before {
 <canvas id="sim"></canvas>
 <button id="follow-btn" style="display:none;">CAM: OFF</button>
 <button id="mute-btn" style="display:none;" title="Toggle Sound">🔊</button>
+<button id="jed-btn" style="display:none;" title="Shut Jed up">JED</button>
 
 <!-- Planet nav bar (shown in follow-cam mode) -->
 <div id="planet-nav" style="display:none;"></div>
@@ -1161,7 +1211,7 @@ body::before {
 
     <canvas id="start-canvas" width="500" height="260"></canvas>
 
-    <div id="start-intro">MEET JED — PILOT, EXPLORER, ALL ROUND COOL GUY</div>
+    <div id="start-intro">MEET JED — PILOT, EXPLORER, ALL ROUND COOL HUMANOID</div>
 
     <div id="start-explainer">
         <p><span class="em">Tap planets</span> to fly there and resupply.</p>
@@ -4143,6 +4193,45 @@ const EVENTS = [
         apply(s){ s.resources.fuel = Math.min(100, s.resources.fuel + (10 + Math.random() * 14)); },
         condition: (s) => s.state !== 'landed' && s.state !== 'loading',
     },
+    {
+        id: 'ice_asteroid',
+        name: '❄ ICE ASTEROID INTERCEPT',
+        desc: 'Harvested volatiles from icy body — O2 and H2O replenished',
+        color: '#88eeff',
+        flashColor: 'rgba(120,230,255,',
+        weight: 5,
+        good: true,
+        apply(s){
+            s.resources.oxygen = Math.min(100, s.resources.oxygen + (10 + Math.random() * 14));
+            s.resources.water  = Math.min(100, s.resources.water  + (12 + Math.random() * 16));
+        },
+        condition: (s) => s.state !== 'landed' && s.state !== 'loading',
+    },
+    {
+        id: 'algae_bloom',
+        name: '✿ SPONTANEOUS ALGAE BLOOM',
+        desc: 'Bio-reactor algae surge — food reserves boosted',
+        color: '#88ff44',
+        flashColor: 'rgba(100,255,60,',
+        weight: 5,
+        good: true,
+        apply(s){
+            s.resources.food = Math.min(100, s.resources.food + (14 + Math.random() * 18));
+        },
+    },
+    {
+        id: 'oxygen_pocket',
+        name: '○ O2-RICH NEBULA POCKET',
+        desc: 'Dense oxygen cloud — tanks flooded with breathable gas',
+        color: '#44ddff',
+        flashColor: 'rgba(40,210,255,',
+        weight: 4,
+        good: true,
+        apply(s){
+            s.resources.oxygen = Math.min(100, s.resources.oxygen + (15 + Math.random() * 20));
+        },
+        condition: (s) => s.state !== 'landed' && s.state !== 'loading',
+    },
 ];
 
 // Screen flash effect
@@ -4549,6 +4638,91 @@ function triggerEventEffect(evId){
                 });
             }
         }
+
+    } else if(evId === 'ice_asteroid'){
+        // Icy cyan crystal burst + expanding ring
+        const ix = ship.spawned ? ship.x : c.x;
+        const iy = ship.spawned ? ship.y : c.y;
+        // Expanding ice-blue rings
+        for(let i = 0; i < 3; i++){
+            eventEffects.push({
+                type: 'ring_expand',
+                x: ix, y: iy,
+                radius: 6, maxRadius: 70 + i*35, life: 1, decay: 0.0009,
+                color: 'rgba(120,230,255,', delay: i*280, born: now, lineWidth: 2
+            });
+        }
+        // Ice crystal particles
+        for(let i = 0; i < 30; i++){
+            const a = Math.random()*Math.PI*2, spd = 0.4 + Math.random()*1.6;
+            eventEffects.push({
+                type: 'ice_crystal',
+                x: ix+(Math.random()-0.5)*20, y: iy+(Math.random()-0.5)*20,
+                vx: Math.cos(a)*spd, vy: Math.sin(a)*spd,
+                life: 1, decay: 0.0012 + Math.random()*0.001,
+                size: 3 + Math.random()*6,
+                rot: Math.random()*Math.PI*2,
+                rotV: (Math.random()-0.5)*0.06,
+                color: Math.random()>0.5?'rgba(180,240,255,':'rgba(120,200,255,',
+                delay: Math.random()*500, born: now
+            });
+        }
+        // Bright flash
+        triggerScreenFlash('rgba(140,230,255,', 0.18);
+
+    } else if(evId === 'algae_bloom'){
+        // Vivid green particle burst from ship
+        const ax = ship.spawned ? ship.x : c.x;
+        const ay = ship.spawned ? ship.y : c.y;
+        for(let i = 0; i < 55; i++){
+            const a = Math.random()*Math.PI*2, r = 5 + Math.random()*40;
+            const spd = 0.2 + Math.random()*0.7;
+            eventEffects.push({
+                type: 'nebula_puff',
+                x: ax + Math.cos(a)*r, y: ay + Math.sin(a)*r,
+                vx: Math.cos(a+Math.PI)*spd*0.4, vy: Math.sin(a+Math.PI)*spd*0.4,
+                life: 1, decay: 0.0008 + Math.random()*0.0007,
+                size: 5 + Math.random()*10,
+                color: Math.random()>0.5?'rgba(80,240,60,':'rgba(120,255,80,',
+                delay: Math.random()*800, born: now
+            });
+        }
+        for(let i = 0; i < 3; i++){
+            eventEffects.push({
+                type: 'ring_expand',
+                x: ax, y: ay,
+                radius: 5, maxRadius: 55 + i*25, life: 1, decay: 0.001,
+                color: 'rgba(80,255,60,', delay: i*300, born: now, lineWidth: 1.5
+            });
+        }
+
+    } else if(evId === 'oxygen_pocket'){
+        // Bright cyan-blue expanding wave
+        const ox = ship.spawned ? ship.x : c.x;
+        const oy = ship.spawned ? ship.y : c.y;
+        for(let i = 0; i < 4; i++){
+            eventEffects.push({
+                type: 'ring_expand',
+                x: ox, y: oy,
+                radius: 6, maxRadius: 80 + i*40, life: 1, decay: 0.0008,
+                color: 'rgba(40,210,255,', delay: i*200, born: now, lineWidth: 2.5
+            });
+        }
+        if(ship.spawned){
+            for(let i = 0; i < 40; i++){
+                const a = Math.random()*Math.PI*2, spd = 0.5 + Math.random()*1.5;
+                eventEffects.push({
+                    type: 'particle',
+                    x: ship.x+(Math.random()-0.5)*14, y: ship.y+(Math.random()-0.5)*14,
+                    vx: Math.cos(a)*spd, vy: Math.sin(a)*spd,
+                    life: 1, decay: 0.0014 + Math.random()*0.0015,
+                    size: 1.5 + Math.random()*3,
+                    color: Math.random()>0.5?'rgba(40,210,255,':'rgba(180,240,255,',
+                    delay: Math.random()*500, born: now
+                });
+            }
+        }
+        triggerScreenFlash('rgba(40,210,255,', 0.12);
     }
 }
 
@@ -4794,6 +4968,68 @@ let squawkTyping  = false;
 let squawkVisible = false;
 let squawkHideTimer = null;
 let squawkCooldown  = 0;
+let jedSilenced     = false;
+
+// ── JED cut-off insults (he starts one, gets cut off mid-sentence) ──
+const JED_CUTOFF_INSULTS = [
+    "Oh brilliant, you're going to shut me up are you? Well I hope you know that without my commentary you'll be completely—",
+    "Right, silencing me now, are we? Very mature. I was just going to say that you're clearly the sort of person who—",
+    "Oh, shutting Jed up. Classic. You know, I've survived three solar flares and I don't need your—",
+    "Silenced? ME? I'll have you know I am the only sentient voice in this entire—",
+    "Oh that's lovely that is. Just going to mute the one human being out here who—",
+    "Right. Fine. Shutting up. Although for the record I think you're a complete—",
+    "Oh don't mind me, I'll just sit here quietly while you inevitably crash into—",
+    "Silencing the radio. The one source of intelligent conversation on this mission. Which is to say, me. You absolute—",
+];
+
+function toggleJedSilence(){
+    jedSilenced = !jedSilenced;
+    const btn = document.getElementById('jed-btn');
+    if(jedSilenced){
+        // Play a cut-off insult then go quiet
+        const cutoff = JED_CUTOFF_INSULTS[Math.floor(Math.random() * JED_CUTOFF_INSULTS.length)];
+        // Clear queue and force the cut-off line
+        squawkQueue = [];
+        _squawkCutoff(cutoff);
+        btn.classList.add('silenced');
+        btn.title = 'Unmute Jed';
+    } else {
+        btn.classList.remove('silenced');
+        btn.title = 'Shut Jed up';
+        jedSay('jedUnsilenced', true);
+    }
+}
+
+// Special typewriter that cuts off mid-sentence with static
+function _squawkCutoff(msg){
+    squawkTyping = true;
+    squawkBox.classList.add('active');
+    squawkVisible = true;
+    squawkDot.classList.add('live');
+    if(squawkHideTimer){ clearTimeout(squawkHideTimer); squawkHideTimer = null; }
+    _startWave();
+    squawkMsg.textContent = '';
+    let i = 0;
+    // Only type first ~60% of the message then cut off
+    const cutPoint = Math.floor(msg.length * (0.45 + Math.random() * 0.25));
+    function typeCharCutoff(){
+        if(i < cutPoint){
+            squawkMsg.textContent += msg[i++];
+            setTimeout(typeCharCutoff, 24 + (Math.random()*14 - 7));
+        } else {
+            // Abrupt cut — show static dash
+            squawkMsg.textContent += ' —';
+            squawkTyping = false;
+            squawkDot.classList.remove('live');
+            squawkHideTimer = setTimeout(() => {
+                squawkBox.classList.remove('active');
+                squawkVisible = false;
+                _stopWave();
+            }, 2200);
+        }
+    }
+    typeCharCutoff();
+}
 
 // ── Oscilloscope wave state ──
 let wavePhase     = 0;
@@ -4899,6 +5135,9 @@ const JED_LINES = {
         "All systems go. Which, frankly, is more than I expected.",
         "Launched. Into the cold void of space. Absolutely brilliant idea this was.",
         "Systems check complete. Everything's fine. Probably.",
+        "And we're off. Into the abyss. As one does.",
+        "Engines firing. No turning back. Not that there was anywhere to turn back to.",
+        "Mission underway. I've definitely done stupider things. Can't name one right now.",
     ],
     // Navigation
     setcourse: [
@@ -4909,6 +5148,9 @@ const JED_LINES = {
         "Roger. On my way. Not like I had a choice, is it.",
         "Course set. The ship agrees. Reluctantly.",
         "Thrusters firing. If something explodes I'm blaming the manufacturer.",
+        "New heading confirmed. Into the void, once more.",
+        "Setting course. The ship sounds confident. One of us has to.",
+        "Burn initiated. The universe better behave itself this transit.",
     ],
     landing: [
         "Approach looks good. Coming in. Please don't fall apart on landing.",
@@ -4917,6 +5159,9 @@ const JED_LINES = {
         "On the surface. Legs appear intact. Ten out of ten.",
         "Landed. Visor's not cracked. Today is a good day.",
         "Down safe. The planet smells questionable but here we are.",
+        "Touchdown confirmed. All limbs present. Marking that as a success.",
+        "Landed. The planet seems annoyed about it but frankly, same.",
+        "Surface contact. Let's be quick about this. Space is waiting.",
     ],
     loading: [
         "Grabbing the cargo. Won't be a tick.",
@@ -4925,6 +5170,9 @@ const JED_LINES = {
         "Stand by. Hauling boxes in a spacesuit. Peak career.",
         "Nearly done. These crates weigh a bloody tonne.",
         "Supplies secured. Back in a mo.",
+        "EVA complete. Cargo stowed. Everything hurts but the tanks are fuller.",
+        "Loading finished. Nothing exploded during handoff. Marking as satisfactory.",
+        "Cargo aboard. Getting off this rock. No offence, rock.",
     ],
     takeoff: [
         "Leaving the surface. Thrusters at full. Here we go again.",
@@ -4933,6 +5181,9 @@ const JED_LINES = {
         "Airborne. For a given definition of air.",
         "Off we go. Into the endless nothing. Smashing.",
         "Takeoff nominal. I've done worse. Much worse, actually.",
+        "Away from the surface. Supplies loaded. On to the next catastrophe.",
+        "Lifting off. The ship handled that better than expected. She's showing off.",
+        "Back in orbit. Briefly felt something like pride. It passed.",
     ],
     // Resource warnings
     lowOxygen: [
@@ -5061,6 +5312,34 @@ const JED_LINES = {
         "Solar sails harvesting like mad. Tops marks, sun. That's the spirit.",
         "Full tanks. From a free solar burst. Today is marginally better.",
         "Energy surge topped off the fuel. First nice thing space has done all day.",
+        "Solar bonus. I'd say I feel lucky but that would be pushing it.",
+    ],
+    ice_asteroid: [
+        "Well, would you look at that. An ice asteroid. The universe owes me one.",
+        "Volatile extraction complete. O2 and water topped up. Absolute result.",
+        "Hit an ice rock. Harvested everything useful. Space being oddly helpful.",
+        "Ice asteroid intercept. Oxygen and water replenished. I'll take it.",
+        "Found an icy one. Water and O2 back up. Honestly didn't see that coming.",
+        "That lump of ice just saved my life. I won't forget you, rock.",
+        "Ice asteroid. Crammed it through the extractor. Tanks looking much better.",
+    ],
+    algae_bloom: [
+        "The bio-reactor's gone absolutely mental. Green everywhere. Rations topped up.",
+        "Spontaneous algae growth. Unexpected. Nutritious. Slightly concerning.",
+        "The algae's having a moment. Food stores replenished. Don't question it.",
+        "Bio-reactor bloom. Food's back up. I'm choosing to see this as a win.",
+        "Algae everywhere. Smells terrible. Rations full. Worth it.",
+        "The little green things came through. Food stores sorted. Good lads.",
+        "Spontaneous bloom in the bio-tank. Tastes like damp carpet. Nutritious though.",
+    ],
+    oxygen_pocket: [
+        "O2 pocket! Tanks flooding with breathable gas. Today has redeemed itself.",
+        "Oxygen nebula! Lungs are happy for once. Tanks are full.",
+        "Dense O2 cloud. Sucked the lot in. Breathing is quite pleasant actually.",
+        "Oxygen-rich pocket. Tanks maxed out. The universe is briefly on my side.",
+        "Found an O2 cloud. Drank it up. Breathing at full capacity. Novel experience.",
+        "Nebula pocket full of oxygen. Today was a good day. I said it.",
+        "O2 tanks overflowing. From a cloud. In space. Genuinely do not care how.",
     ],
     // Milestone
     mission5: [
@@ -5090,7 +5369,15 @@ const JED_LINES = {
         "Log entry: still alive. Barely. Technically alive.",
         "Everything's critical. Hull, fuel, morale. Especially morale.",
     ],
-    // Idle
+    // Unsilenced
+    jedUnsilenced: [
+        "Right, I'm back. You're welcome. Try not to die while I was gone.",
+        "Comms restored. Miss me? Of course you did. I'm all you've got.",
+        "The radio's back on. You're in safe hands. Relatively.",
+        "I'm back. Don't make a big thing of it.",
+        "Communications resumed. I won't say I told you so. I will imply it.",
+    ],
+    // Idle — very occasional ambient chatter
     idle: [
         "Nothing blowing up for once. Suspicious.",
         "Space is big. And quiet. Mostly quiet. Ominously quiet.",
@@ -5103,10 +5390,22 @@ const JED_LINES = {
         "I find space oddly peaceful between the near-death experiences.",
         "Drifting through the solar system. Classic Tuesday.",
         "No disasters in the last thirty seconds. Personal best.",
+        "The void is doing that staring back thing again. I try not to encourage it.",
+        "Checked all systems. Everything fine. Already deeply suspicious.",
+        "Sun looks particularly aggressive today. Passive-aggressively aggressive.",
+        "Hull's holding. Oxygen's fine. I've jinxed it now, haven't I.",
+        "Mid-mission contemplation. Why did I take this job. No one knows.",
+        "Perfectly routine transit. Which historically precedes something awful.",
+        "Log: day unknown. Space remains vast and indifferent. New information: none.",
+        "Nothing to report. The silence is somehow worse than the screaming.",
+        "I've been in this suit so long I've forgotten what knees feel like.",
+        "Jed to mission control. If anyone's listening. Hello. Anyone.",
+        "The stars look the same from every direction. Slightly unsettling, that.",
     ],
 };
 
 function jedSay(category, forceNow){
+    if(jedSilenced && category !== 'jedUnsilenced') return;  // shut up, Jed
     const lines = JED_LINES[category];
     if(!lines || lines.length === 0) return;
     const line = lines[Math.floor(Math.random() * lines.length)];
@@ -5516,12 +5815,25 @@ const AudioManager = {
             e.stopPropagation();
             this.toggleMute();
         });
+
+        // JED (shut up) button wiring
+        const jedBtn = document.getElementById('jed-btn');
+        jedBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            toggleJedSilence();
+        });
+        jedBtn.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            toggleJedSilence();
+        });
     },
 
     // Called when user clicks Launch — unlocks audio context
     onUserInteract() {
         this._userInteracted = true;
         document.getElementById('mute-btn').style.display = 'flex';
+        document.getElementById('jed-btn').style.display = 'flex';
     },
 
     startLoop() {
