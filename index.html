@@ -3550,7 +3550,13 @@ class Ship {
             const arriveRadius = 120;
             const surfaceDist = Math.max(0, dist - this.target.size);
             let desiredSpeed = surfaceDist < arriveRadius ? maxSpeed * (surfaceDist / arriveRadius) : maxSpeed;
-            desiredSpeed = Math.max(desiredSpeed, 0.55);
+            
+            // FIX: Ensure we can catch planets moving away from us
+            // Convert planet angular velocity to linear speed in ship velocity units
+            // Planet moves at speed (rad/ms) * radius (px) = px/ms
+            // Ship moves at vx * dt * 0.1, so vx = px/ms * 10 to match units
+            const planetLinearSpeed = this.target.orbitRadius() * this.target.speed * 10;
+            desiredSpeed = Math.max(desiredSpeed, planetLinearSpeed * 1.2);
 
             const desiredVX = Math.cos(angle) * desiredSpeed;
             const desiredVY = Math.sin(angle) * desiredSpeed;
@@ -5451,7 +5457,7 @@ const JED_LINES = {
         "Unexpected energy burst. Free fuel. I'll ask no questions.",
         "Solar sails harvesting like mad. Tops marks, sun. That's the spirit.",
         "Full tanks. From a free solar burst. Today is marginally better.",
-        "Energy surge topped off the fuel. First nice thing space has done all day.",
+        "Solar bonus. I'd say I feel lucky but that would be pushing it.",
         "Solar bonus. I'd say I feel lucky but that would be pushing it.",
     ],
     ice_asteroid: [
